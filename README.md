@@ -1,1 +1,6 @@
 # backend-form
+
+Este repositório serve como o backend de uma aplicação destinada à criação, visualização e gerenciamento de formulários.
+Ele deverá disponibilizar endpoints para que clientes possam definir novos formulários, consultar respostas e administrar os formulários já cadastrados.
+
+Embora a estrutura atual seja simples, este projeto é o ponto inicial para o desenvolvimento da API que irá persistir e manipular dados de formulários.
