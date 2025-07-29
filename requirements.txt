@@ -1,4 +1,15 @@
-fastapi
-uvicorn
-sqlalchemy
-passlib[bcrypt]
+# --- Core FastAPI e servidor ASGI ---
+fastapi                 # Framework principal
+uvicorn[standard]       # Servidor ASGI com suporte a reload, logs, etc
+
+# --- Banco de dados e ORM ---
+sqlalchemy              # ORM para modelagem e comunicação com PostgreSQL
+psycopg2-binary         # Driver PostgreSQL para SQLAlchemy
+
+# --- Segurança ---
+passlib[bcrypt]         # Hash seguro de senhas usando bcrypt
+python-jose[cryptography]  # JWT com suporte a criptografia segura
+
+# --- Utilidades ---
+python-dotenv           # Carrega variáveis do arquivo .env para o ambiente
+pydantic[email]
