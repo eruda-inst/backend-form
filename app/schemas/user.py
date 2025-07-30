@@ -26,3 +26,16 @@ class UsuarioResponse(UsuarioBase):
 
 class AlterarSenhaRequest(BaseModel):
     senha: str
+
+class UsuarioUpdate(BaseModel):
+    nome: Optional[str] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+    nivel: Optional[str] = None
+    ativo: Optional[bool] = None
+    genero: Optional[str] = None
+    imagem: Optional[str] = None
+
+    model_config = {
+        "from_attributes": True
+    }

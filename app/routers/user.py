@@ -53,11 +53,14 @@ def buscar_por_id(usuario_id: str, db: Session = Depends(get_db), user: models.U
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return usuario
 
+@router.get("/me", response_model=schemas.UsuarioResponse)
+def perfil(current_user: models.Usuario = Depends(get_current_user)):
+    return current_user
 
 @router.put("/{usuario_id}", response_model=schemas.UsuarioResponse)
 def atualizar_usuario(
     usuario_id: str,
-    dados: schemas.UsuarioCreate,
+    dados: schemas.UsuarioUpdate,
     db: Session = Depends(get_db),
     user: models.Usuario = Depends(get_current_user)
 ):
@@ -67,14 +70,9 @@ def atualizar_usuario(
     usuario = crud.buscar_usuario_por_id(db, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
-    usuario.nome = dados.nome
-    usuario.email = dados.email
-    usuario.nivel = dados.nivel
-    usuario.ativo = dados.ativo
-    usuario.username = dados.username
-    usuario.genero = dados.genero if hasattr(dados, "genero") else usuario.genero
-    usuario.imagem = dados.imagem if hasattr(dados, "imagem") else usuario.imagem
+    
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(usuario, campo, valor)
 
     db.commit()
     db.refresh(usuario)
@@ -95,9 +93,6 @@ def deletar(usuario_id: str, db: Session = Depends(get_db), admin: models.Usuari
     crud.deletar_usuario(db, usuario_id)
 
 
-@router.get("/me", response_model=schemas.UsuarioResponse)
-def perfil(current_user: models.Usuario = Depends(get_current_user)):
-    return current_user
 
 @router.patch("/{usuario_id}/senha", response_model=schemas.UsuarioResponse)
 def alterar_senha(

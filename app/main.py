@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import criar_tabelas
-from app.routers import user, auth, setup
+from app.routers import user, auth, setup, perfil
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 
@@ -39,3 +39,4 @@ app.openapi = custom_openapi
 app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(setup.router)
+app.include_router(perfil.router)
