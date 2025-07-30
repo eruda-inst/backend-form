@@ -14,6 +14,7 @@ class LoginResponse(BaseModel):
     lastName: str
     gender: Optional[str] = None
     image: Optional[str] = None
+    grupo: Optional[str] = None 
     accessToken: str
     refreshToken: str
 

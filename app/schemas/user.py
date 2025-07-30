@@ -2,6 +2,8 @@ from pydantic import BaseModel, EmailStr
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
+from schemas.grupo import GrupoResponse
+
 
 class UsuarioBase(BaseModel):
     nome: str
@@ -14,10 +16,14 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCreate(UsuarioBase):
     senha: str
+    grupo_id: UUID
+
 
 class UsuarioResponse(UsuarioBase):
     id: UUID
     criado_em: datetime
+    grupo: GrupoResponse
+
 
     model_config = {
         "from_attributes": True
@@ -35,6 +41,8 @@ class UsuarioUpdate(BaseModel):
     ativo: Optional[bool] = None
     genero: Optional[str] = None
     imagem: Optional[str] = None
+    grupo_id: Optional[UUID] = None
+
 
     model_config = {
         "from_attributes": True

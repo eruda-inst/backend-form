@@ -1,10 +1,20 @@
 from fastapi import FastAPI
 from app.database import criar_tabelas
-from app.routers import user, auth, setup, perfil
+from app.routers import user, auth, setup, perfil, grupo
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="Sistema de Pesquisa e Formulários")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 criar_tabelas()
 
@@ -40,3 +50,6 @@ app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(setup.router)
 app.include_router(perfil.router)
+app.include_router(grupo.router)
+
+

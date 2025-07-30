@@ -31,6 +31,7 @@ def login(dados: LoginInput, db: Session = Depends(get_db)):
         "lastName": " ".join(usuario.nome.split(" ")[1:]) if usuario.nome and len(usuario.nome.split(" ")) > 1 else "",
         "gender": usuario.genero if hasattr(usuario, "genero") else None,
         "image": usuario.imagem if hasattr(usuario, "imagem") else None,
+        "grupo": usuario.grupo.nome if usuario.grupo else None,
         "accessToken": access_token,
         "refreshToken": refresh_token
     }

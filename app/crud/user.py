@@ -9,7 +9,7 @@ def criar_usuario(db: Session, usuario: schemas.UsuarioCreate) -> models.Usuario
         nome=usuario.nome,
         email=usuario.email,
         senha=senha_hash,
-        nivel=usuario.nivel,
+        grupo_id=usuario.grupo_id,
         ativo=usuario.ativo,
         username=usuario.username,
         genero=usuario.genero,

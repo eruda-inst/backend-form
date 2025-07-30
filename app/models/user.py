@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timezone
@@ -16,6 +17,8 @@ class Usuario(Base):
     nome = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     senha = Column(String, nullable=False)
-    nivel = Column(String, default="visualizador", nullable=False)
     ativo = Column(Boolean, default=True)
     criado_em = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    grupo_id = Column(UUID(as_uuid=True), ForeignKey("grupos.id"), nullable=False)
+    grupo = relationship("Grupo", back_populates="usuarios")

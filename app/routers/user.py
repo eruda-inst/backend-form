@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app import schemas, crud, database, models
 from app.models import Usuario as UsuarioModel
-from app.dependencies.auth import get_optional_user, get_current_user, is_admin
+from uuid import UUID
+from app.dependencies.auth import get_current_user, is_admin, require_permission
 from app.security import hash_senha, gerar_token, gerar_refresh_token
+from app.utils.permissoes import listar_permissoes_do_usuario
+
+
 
 
 
@@ -16,13 +20,17 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/", response_model=schemas.LoginResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.LoginResponse, status_code=status.HTTP_201_CREATED, dependencies=[require_permission('criar_usuario')])
 def criar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db), admin: models.Usuario = Depends(is_admin)):
     if crud.buscar_usuario_por_email(db, usuario.email):
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
 
     if crud.buscar_usuario_por_username(db, usuario.username):
         raise HTTPException(status_code=400, detail="Username já cadastrado")
+    
+    grupo = db.query(models.Grupo).filter(models.Grupo.id == usuario.grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=400, detail="Grupo não encontrado")
 
     novo_usuario = crud.criar_usuario(db, usuario)
 
@@ -37,6 +45,7 @@ def criar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db),
         "lastName": " ".join(novo_usuario.nome.split(" ")[1:]) if novo_usuario.nome and len(novo_usuario.nome.split(" ")) > 1 else "",
         "gender": novo_usuario.genero if hasattr(novo_usuario, "genero") else None,
         "image": novo_usuario.imagem if hasattr(novo_usuario, "imagem") else None,
+        "grupo": novo_usuario.grupo.nome if novo_usuario.grupo else None,
         "accessToken": access_token,
         "refreshToken": refresh_token
     }
@@ -56,6 +65,21 @@ def buscar_por_id(usuario_id: str, db: Session = Depends(get_db), user: models.U
 @router.get("/me", response_model=schemas.UsuarioResponse)
 def perfil(current_user: models.Usuario = Depends(get_current_user)):
     return current_user
+
+@router.get("/{usuario_id}/permissoes")
+def permissoes_do_usuario(usuario_id: UUID, db: Session = Depends(get_db)):
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    permissoes = listar_permissoes_do_usuario(usuario)
+
+    return {
+        "usuario": usuario.nome,
+        "grupo": usuario.grupo.nome if usuario.grupo else None,
+        "permissoes": permissoes
+    }
+
 
 @router.put("/{usuario_id}", response_model=schemas.UsuarioResponse)
 def atualizar_usuario(
