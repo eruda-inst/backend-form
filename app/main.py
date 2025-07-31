@@ -1,12 +1,21 @@
 from fastapi import FastAPI
-from app.database import criar_tabelas
-from app.routers import user, auth, setup, perfil, grupo
+from contextlib import asynccontextmanager
+from app.database import criar_tabelas, SessionLocal
+from app.routers import user, auth, setup, perfil, grupo, permissao
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
+from app.utils.seed import seed_grupo_admin_e_permissoes
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+    seed_grupo_admin_e_permissoes(db)
+    db.close()
+    yield
 
 
-app = FastAPI(title="Sistema de Pesquisa e Formulários")
+app = FastAPI(lifespan=lifespan,title="Sistema de Pesquisa e Formulários")
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,5 +60,6 @@ app.include_router(auth.router)
 app.include_router(setup.router)
 app.include_router(perfil.router)
 app.include_router(grupo.router)
+app.include_router(permissao.router)
 
 

@@ -20,5 +20,5 @@ class Usuario(Base):
     ativo = Column(Boolean, default=True)
     criado_em = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    grupo_id = Column(UUID(as_uuid=True), ForeignKey("grupos.id"), nullable=False)
     grupo = relationship("Grupo", back_populates="usuarios")
+    grupo_id = Column(UUID(as_uuid=True), ForeignKey("grupos.id"), nullable=False)

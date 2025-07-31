@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timezone, timedelta
@@ -43,3 +44,16 @@ def gerar_refresh_token(dados: dict) -> str:
         "type": "refresh"
     })
     return jwt.encode(to_encode, SEGREDO_JWT, algorithm=ALGORITMO_JWT)
+
+
+
+def verificar_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, SEGREDO_JWT, algorithms=[ALGORITMO_JWT])
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

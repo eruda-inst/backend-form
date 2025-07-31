@@ -1,25 +1,40 @@
 from fastapi import Request, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.crud.user import buscar_usuario_por_id
 from app.security import decode_jwt
 from typing import Optional
 from app.models.user import Usuario
+from uuid import UUID
+from app.models.grupo import Grupo
+from app.security import verificar_token
+
+
+def _carregar_usuario_com_relacionamentos(db: Session, usuario_id: UUID) -> Usuario | None:
+    return (
+        db.query(Usuario)
+        .options(selectinload(Usuario.grupo).selectinload(Grupo.permissoes))
+        .filter(Usuario.id == usuario_id)
+        .first()
+    )
 
 def get_optional_user(
     request: Request,
     db: Session = Depends(get_db)
-) -> Optional[Usuario]:
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
+) -> Usuario | None:
+    token = request.headers.get("Authorization")
+    if not token or not token.startswith("Bearer "):
         return None
 
-    token = auth_header.split(" ")[1]
-    payload = decode_jwt(token)
-    if not payload or "sub" not in payload:
+    token = token.removeprefix("Bearer ").strip()
+    try:
+        payload = verificar_token(token)
+        usuario_id = payload.get("sub")
+        if not usuario_id:
+            return None
+        return _carregar_usuario_com_relacionamentos(db, usuario_id)
+    except Exception:
         return None
-
-    return buscar_usuario_por_id(db, payload["sub"])
 
 def get_current_user(
     request: Request,
@@ -32,7 +47,7 @@ def get_current_user(
 
 
 def is_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:
-    if current_user.nivel != "admin":
+    if current_user.grupo.nome != "admin":
         raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
     return current_user
 

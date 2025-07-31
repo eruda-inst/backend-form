@@ -3,12 +3,10 @@ from sqlalchemy.orm import Session
 from app import schemas, crud, database, models
 from app.models import Usuario as UsuarioModel
 from uuid import UUID
-from app.dependencies.auth import get_current_user, is_admin, require_permission
+from app.dependencies.auth import get_current_user, is_admin
+from app.dependencies.permissoes import require_permission
 from app.security import hash_senha, gerar_token, gerar_refresh_token
 from app.utils.permissoes import listar_permissoes_do_usuario
-
-
-
 
 
 router = APIRouter(prefix="/usuarios", tags=["Cadastro"])
@@ -20,7 +18,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/", response_model=schemas.LoginResponse, status_code=status.HTTP_201_CREATED, dependencies=[require_permission('criar_usuario')])
+@router.post("/", response_model=schemas.LoginResponse, status_code=status.HTTP_201_CREATED, dependencies=[require_permission('usuarios:criar')])
 def criar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db), admin: models.Usuario = Depends(is_admin)):
     if crud.buscar_usuario_por_email(db, usuario.email):
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
@@ -51,11 +49,11 @@ def criar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db),
     }
 
 
-@router.get("/", response_model=list[schemas.UsuarioResponse])
+@router.get("/", response_model=list[schemas.UsuarioResponse], dependencies=[require_permission('usuarios:ver')])
 def listar(db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
     return crud.listar_usuarios(db)
 
-@router.get("/{usuario_id}", response_model=schemas.UsuarioResponse)
+@router.get("/{usuario_id}", response_model=schemas.UsuarioResponse, dependencies=[require_permission('usuarios:ver')])
 def buscar_por_id(usuario_id: str, db: Session = Depends(get_db), user: models.Usuario = Depends(get_current_user)):
     usuario = crud.buscar_usuario_por_id(db, usuario_id)
     if not usuario:
@@ -105,7 +103,7 @@ def atualizar_usuario(
 
 
 
-@router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[require_permission('usuarios:deletar')])
 def deletar(usuario_id: str, db: Session = Depends(get_db), admin: models.Usuario = Depends(is_admin)):
     usuario = crud.buscar_usuario_por_id(db, usuario_id)
     if not usuario:
@@ -129,7 +127,7 @@ def alterar_senha(
     if not usuario_alvo:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    if user.id != usuario_alvo.id and user.nivel != "admin":
+    if user.id != usuario_alvo.id and user.grupo.nome != "admin":
         raise HTTPException(status_code=403, detail="Você não tem permissão para alterar essa senha")
 
     usuario_alvo.senha = hash_senha(dados.senha)

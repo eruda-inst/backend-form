@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from uuid import UUID
 from app import models, schemas
 from app.security import hash_senha
@@ -37,15 +38,25 @@ def atualizar_usuario(db: Session, usuario_id: UUID, dados: schemas.UsuarioCreat
     if not usuario:
         return None
 
+def get_usuario_admin(db: Session) -> models.Usuario | None:
+    return db.query(models.Usuario).filter(models.Usuario.grupo.has(nome="admin")).first()
+
+
 def existe_admin(db: Session) -> bool:
-    return db.query(models.Usuario).filter(models.Usuario.nivel == "admin").first() is not None
+    return (
+        db.query(models.Usuario)
+        .join(models.Grupo)
+        .filter(models.Grupo.nome == "admin")
+        .first()
+        is not None
+    )
 
 def deletar_usuario(db: Session, usuario_id: UUID) -> bool:
     usuario = buscar_usuario_por_id(db, usuario_id)
     if not usuario:
         return False
 
-    if usuario.nivel == "admin":
+    if usuario.grupo.nome == "admin":
         return False
 
     db.delete(usuario)

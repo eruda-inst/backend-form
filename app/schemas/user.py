@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.grupo import GrupoResponse
+from .grupo import GrupoResponse
 
 
 class UsuarioBase(BaseModel):
@@ -11,7 +11,6 @@ class UsuarioBase(BaseModel):
     genero: Optional[str] = None
     imagem: Optional[str] = None
     email: EmailStr
-    nivel: str = "visualizador"
     ativo: Optional[bool] = True
 
 class UsuarioCreate(UsuarioBase):

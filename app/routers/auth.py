@@ -4,8 +4,8 @@ from app.database import get_db
 from app.schemas.auth import RefreshRequest, LoginInput, LoginResponse
 from app.schemas.user import UsuarioResponse
 from app.security import verificar_senha, gerar_token, gerar_refresh_token, decode_jwt
-from app.dependencies.auth import get_optional_user
 from app.models.user import Usuario
+from app.crud.grupo import existe_grupo_admin
 from app.crud.user import existe_admin, buscar_usuario_por_username
 
 
@@ -34,21 +34,6 @@ def login(dados: LoginInput, db: Session = Depends(get_db)):
         "grupo": usuario.grupo.nome if usuario.grupo else None,
         "accessToken": access_token,
         "refreshToken": refresh_token
-    }
-
-@router.get("/status")
-def status(db: Session = Depends(get_db), user: Usuario | None = Depends(get_optional_user)):
-    admin_existe = existe_admin(db)
-
-    return {
-        "admin_existe": admin_existe,
-        "autenticado": user is not None,
-        "usuario": {
-            "id": str(user.id),
-            "nome": user.nome,
-            "email": user.email,
-            "nivel": user.nivel
-        } if user else None
     }
 
 @router.post("/logout")
