@@ -2,3 +2,5 @@ from .user import UsuarioCreate, UsuarioResponse, AlterarSenhaRequest, UsuarioUp
 from .auth import LoginInput, LoginResponse, RefreshRequest
 from .grupo import PermissaoGrupoInput, GrupoErroResponse, GrupoResponse, GrupoBase, GrupoCreate, GrupoComPermissoesResponse, GrupoUpdate
 from .permissao import PermissaoResponse
+from .forms import FormularioBase, FormularioCreate, FormularioOut, FormularioVersaoBase, FormularioVersaoCreate, FormularioVersaoOut, EdicaoFormularioBase, EdicaoFormularioCreate, EdicaoFormularioOut
+

@@ -1,13 +1,22 @@
-from fastapi import Request, Depends, HTTPException
+from fastapi import Request, Depends, HTTPException, WebSocket
 from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.crud.user import buscar_usuario_por_id
-from app.security import decode_jwt
-from typing import Optional
+from typing import Optional, Union
+from jose import jwt, JWTError
+from app.database import SessionLocal
 from app.models.user import Usuario
 from uuid import UUID
 from app.models.grupo import Grupo
 from app.security import verificar_token
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("JWT_SECRET", "padrão-inseguro")
+ALGORITHM = "HS256"
+
 
 
 def _carregar_usuario_com_relacionamentos(db: Session, usuario_id: UUID) -> Usuario | None:
@@ -44,6 +53,39 @@ def get_current_user(
     if not usuario:
         raise HTTPException(status_code=401, detail="Token inválido ou ausente")
     return usuario
+
+async def get_current_user_ws(websocket: WebSocket) -> Usuario | None:
+    token = websocket.cookies.get("access_token")
+
+    if not token and "authorization" in websocket.headers:
+        auth = websocket.headers["authorization"]
+        if auth.startswith("Bearer "):
+            token = auth.split(" ")[1]
+
+    if not token:
+        await websocket.close(code=1008)
+        return None
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            await websocket.close(code=1008)
+            return None
+
+        db = SessionLocal()
+        usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
+        db.close()
+
+        if usuario is None:
+            await websocket.close(code=1008)
+            return None
+
+        return usuario
+
+    except JWTError:
+        await websocket.close(code=1008)
+        return None
 
 
 def is_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:

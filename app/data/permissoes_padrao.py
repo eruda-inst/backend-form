@@ -14,4 +14,9 @@ PERMISSOES_PADRAO = [
 
     # permissões
     {"codigo": "permissoes:ver", "nome": "Ver permissões"},
+
+    # formulários
+    {"codigo": "formularios:criar", "nome": "Criar formulários"},
+    {"codigo": "formularios:ver", "nome": "Ver formulários"},
+    {"codigo": "formularios:editar", "nome": "Editar formulários"}
 ]

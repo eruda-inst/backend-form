@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.database import criar_tabelas, SessionLocal
-from app.routers import user, auth, setup, perfil, grupo, permissao
+from app.routers import user, auth, setup, perfil, grupo, permissao, forms
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from app.utils.seed import seed_grupo_admin_e_permissoes
+from .websockets import forms as forms_ws
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,5 +64,7 @@ app.include_router(setup.router)
 app.include_router(perfil.router)
 app.include_router(grupo.router)
 app.include_router(permissao.router)
+app.include_router(forms.router)
+app.include_router(forms_ws.router)
 
 

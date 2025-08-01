@@ -1,0 +1,69 @@
+from uuid import UUID
+from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional, List, Any
+from .perguntas import PerguntaCreate, PerguntaUpdatePayload, PerguntaOut
+
+
+class FormularioBase(BaseModel):
+    titulo: str
+    descricao: Optional[str] = None
+
+class FormularioCreate(FormularioBase):
+    perguntas: Optional[List[PerguntaCreate]] = []
+
+class FormularioOut(BaseModel):
+    id: UUID
+    titulo: str
+    descricao: Optional[str]
+    criado_em: datetime
+    perguntas: list[PerguntaOut] = []
+
+    model_config = {
+        "from_attributes": True
+    }
+
+class FormularioUpdatePayload(BaseModel):
+    formulario_id: UUID
+    titulo: Optional[str] = None
+    descricao: Optional[str] = None
+    perguntas_adicionadas: Optional[List[PerguntaUpdatePayload]] = []
+    perguntas_editadas: Optional[List[PerguntaUpdatePayload]] = []
+    perguntas_removidas: Optional[List[UUID]] = []
+
+class FormularioVersaoBase(BaseModel):
+    versao: int
+    nome: str
+    perguntas_json: Any 
+
+class FormularioVersaoCreate(FormularioVersaoBase):
+    formulario_id: UUID
+    criado_por_id: UUID
+
+class FormularioVersaoOut(FormularioVersaoBase):
+    id: UUID
+    formulario_id: UUID
+    criado_em: datetime
+    criado_por_id: UUID
+
+    class Config:
+        from_attributes = True
+
+class EdicaoFormularioBase(BaseModel):
+    campo: str
+    valor_antigo: str | None = None
+    valor_novo: str | None = None
+
+class EdicaoFormularioCreate(EdicaoFormularioBase):
+    formulario_id: UUID
+    usuario_id: UUID
+
+class EdicaoFormularioOut(EdicaoFormularioBase):
+    id: UUID
+    formulario_id: UUID
+    usuario_id: UUID
+    data_edicao: datetime
+
+    class Config:
+        from_attributes = True
+
