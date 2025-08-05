@@ -56,6 +56,7 @@ def buscar_formulario_por_id(db: Session, formulario_id: str):
     )
 
 def atualizar_formulario_parcial(db: Session, payload: dict):
+    print("ID bruto recebido:", payload.get("formulario_id"))
     try:
         formulario_id = UUID(payload.get("formulario_id"))
     except ValueError:
@@ -73,7 +74,6 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
 
     for p in payload.get("perguntas_adicionadas", []):
         nova = models.Pergunta(
-            formulario_id=formulario_id,
             texto=p.get("texto"),
             tipo=p.get("tipo"),
             obrigatoria=p.get("obrigatoria", True),
@@ -81,9 +81,9 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
             escala_min=p.get("escala_min"),
             escala_max=p.get("escala_max"),
         )
-        db.add(nova)
-        db.flush()
-        db.refresh(nova)
+        formulario.perguntas.append(nova)
+        db.commit()
+        db.refresh(formulario)
 
 
     for p in payload.get("perguntas_editadas", []):
@@ -99,6 +99,8 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
             pergunta.ativa = False
 
     db.commit()
+    db.refresh(formulario)
+    print("Perguntas após commit:", [p.texto for p in formulario.perguntas if p.ativa])
     from sqlalchemy.orm import joinedload
     from pprint import pprint
 

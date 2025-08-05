@@ -26,11 +26,11 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
     try:
         while True:
             data = await websocket.receive_json()
-            print("Recebido:", data)
             tipo = data.get("tipo")
             conteudo = data.get("conteudo")
 
             if tipo == "update_formulario":
+                print("Recebido:", db, conteudo)
                 resultado = crud.atualizar_formulario_parcial(db, conteudo)
                 if resultado:
                     print("RESULTADO FINAL ANTES DO ENVIO: ", resultado.perguntas)

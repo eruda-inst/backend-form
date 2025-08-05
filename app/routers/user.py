@@ -104,15 +104,19 @@ def atualizar_usuario(
 
 
 @router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[require_permission('usuarios:deletar')])
-def deletar(usuario_id: str, db: Session = Depends(get_db), admin: models.Usuario = Depends(is_admin)):
+def deletar(usuario_id: UUID, db: Session = Depends(get_db), admin: models.Usuario = Depends(get_current_user)):
     usuario = crud.buscar_usuario_por_id(db, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    if usuario.nivel == "admin":
+    if usuario.id == admin.id:
+        raise HTTPException(status_code=403, detail="Você não pode excluir a si mesmo por esta rota")
+
+    if usuario.grupo.nome == "admin":
         raise HTTPException(status_code=403, detail="Não é permitido excluir um administrador")
 
     crud.deletar_usuario(db, usuario_id)
+
 
 
 

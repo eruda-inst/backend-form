@@ -59,8 +59,18 @@ def deletar_usuario(db: Session, usuario_id: UUID) -> bool:
     if usuario.grupo.nome == "admin":
         return False
 
-    db.delete(usuario)
-    db.commit()
+    return True
+
+
+def deletar_me(db: Session, usuario_id: UUID) -> bool:
+    usuario = buscar_usuario_por_id(db, usuario_id)
+    if usuario:
+        print("Deletando usuário:", usuario.id)
+        db.delete(usuario)
+        db.commit()
+    else:
+        print("Usuário não encontrado para deletar:", usuario_id)
+
     return True
 
 
