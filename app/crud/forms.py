@@ -103,13 +103,11 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
     db.commit()
     db.refresh(formulario)
     print("Perguntas após commit:", [p.texto for p in formulario.perguntas if p.ativa])
-    from pprint import pprint
 
     formulario = db.query(models.Formulario).options(
         joinedload(models.Formulario.perguntas)
     ).filter(models.Formulario.id == formulario_id).first()
 
-    pprint([p.texto for p in formulario.perguntas])
 
     return formulario
 

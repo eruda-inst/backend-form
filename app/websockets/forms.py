@@ -7,9 +7,6 @@ from app.dependencies.permissoes import require_permission
 from app.dependencies.auth import get_current_user_ws
 
 
-
-
-
 router = APIRouter(prefix="/ws", tags=["Websocket - Formulários"])
 gerenciador = GerenciadorConexoes()
 
@@ -21,7 +18,22 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
 
     await websocket.accept()
 
-    await gerenciador.conectar(formulario_id, websocket)
+    await gerenciador.conectar(
+        formulario_id,
+        websocket,
+        {
+            "id": str(usuario.id),
+            "nome": usuario.nome,
+            "username": usuario.username
+        }
+    )
+    await gerenciador.enviar_para_sala(
+        formulario_id,
+        {
+            "tipo": "usuarios_na_sala",
+            "usuarios": gerenciador.lista_usuarios_na_sala(formulario_id)
+        }
+    )
     db = SessionLocal()
     try:
         while True:
@@ -30,8 +42,6 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
             conteudo = data.get("conteudo")
 
             if tipo == "update_formulario":
-                print("Recebido:", db, conteudo)
-                print("Tipo recebido:", tipo)
                 resultado = crud.atualizar_formulario_parcial(db, conteudo)
                 if resultado:
                     await gerenciador.enviar_para_sala(
@@ -43,5 +53,12 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
                     )
     except WebSocketDisconnect:
         gerenciador.desconectar(formulario_id, websocket)
+        await gerenciador.enviar_para_sala(
+            formulario_id,
+            {
+                "tipo": "usuario_desconectado",
+                "usuarios": gerenciador.lista_usuarios_na_sala(formulario_id)
+            }
+        )
     finally:
         db.close()
