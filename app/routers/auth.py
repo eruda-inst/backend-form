@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.auth import RefreshRequest, LoginInput, LoginResponse
@@ -7,13 +7,14 @@ from app.security import verificar_senha, gerar_token, gerar_refresh_token, deco
 from app.models.user import Usuario
 from app.crud.grupo import existe_grupo_admin
 from app.crud.user import existe_admin, buscar_usuario_por_username
+from uuid import uuid4
 
 
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 @router.post("/login", response_model=LoginResponse)
-def login(dados: LoginInput, db: Session = Depends(get_db)):
+def login(request: Request, dados: LoginInput, db: Session = Depends(get_db)):
     usuario = buscar_usuario_por_username(db, dados.username)
 
     if not usuario or not verificar_senha(dados.password, usuario.senha):

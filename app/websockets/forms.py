@@ -31,14 +31,14 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
 
             if tipo == "update_formulario":
                 print("Recebido:", db, conteudo)
+                print("Tipo recebido:", tipo)
                 resultado = crud.atualizar_formulario_parcial(db, conteudo)
                 if resultado:
-                    print("RESULTADO FINAL ANTES DO ENVIO: ", resultado.perguntas)
                     await gerenciador.enviar_para_sala(
                         formulario_id,
                         {
                             "tipo": "formulario_atualizado",
-                            "conteudo": schemas.FormularioOut.model_validate(resultado).model_dump()
+                            "conteudo": schemas.FormularioOut.model_validate(resultado).model_dump(mode="json")
                         }
                     )
     except WebSocketDisconnect:

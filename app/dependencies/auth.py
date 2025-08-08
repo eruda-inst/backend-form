@@ -46,10 +46,9 @@ def get_optional_user(
         return None
 
 def get_current_user(
-    request: Request,                      # ❗️sem Depends aqui
+    request: Request,                    
     db: Session = Depends(get_db)
 ) -> Usuario:
-    print("get_current_user chamado")
     usuario = get_optional_user(request, db)
     if not usuario:
         raise HTTPException(status_code=401, detail="Token inválido ou ausente")

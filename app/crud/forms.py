@@ -56,10 +56,12 @@ def buscar_formulario_por_id(db: Session, formulario_id: str):
     )
 
 def atualizar_formulario_parcial(db: Session, payload: dict):
-    print("ID bruto recebido:", payload.get("formulario_id"))
     try:
         formulario_id = UUID(payload.get("formulario_id"))
+        print("Formulário_id: ", formulario_id)
     except ValueError:
+        import logging
+        logging.exception("Erro ao converter UUID")
         return None
     formulario = db.query(models.Formulario).options(
         joinedload(models.Formulario.perguntas)
@@ -101,7 +103,6 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
     db.commit()
     db.refresh(formulario)
     print("Perguntas após commit:", [p.texto for p in formulario.perguntas if p.ativa])
-    from sqlalchemy.orm import joinedload
     from pprint import pprint
 
     formulario = db.query(models.Formulario).options(
