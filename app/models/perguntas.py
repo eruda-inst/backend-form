@@ -18,7 +18,12 @@ class Pergunta(Base):
     escala_max = Column(Integer, nullable=True)
 
     formulario = relationship("Formulario", back_populates="perguntas")
-    opcoes = relationship("Opcao", back_populates="pergunta", cascade="all, delete-orphan")
+    opcoes = relationship(
+        "Opcao",
+        back_populates="pergunta",
+        cascade="all, delete-orphan",
+        passive_deletes=True,    
+    )
     respostas = relationship("Resposta", back_populates="pergunta", cascade="all, delete-orphan")
 
 

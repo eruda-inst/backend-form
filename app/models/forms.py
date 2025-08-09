@@ -15,8 +15,20 @@ class Formulario(Base):
     versao_atual = Column(Integer, default=1)
     criado_em = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     criado_por_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False)
+    permissoes = relationship(
+        "FormularioPermissao",
+        back_populates="formulario",
+        cascade="all, delete-orphan",
+        passive_deletes=True,        
+    )
 
-    perguntas = relationship("Pergunta", back_populates="formulario", lazy="joined")
+    perguntas = relationship(
+        "Pergunta",
+        back_populates="formulario",
+        lazy="joined",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     versoes = relationship("FormularioVersao", back_populates="formulario", cascade="all, delete-orphan")
     edicoes = relationship("EdicaoFormulario", back_populates="formulario", cascade="all, delete-orphan")
 

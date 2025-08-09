@@ -14,9 +14,12 @@ PERMISSOES_PADRAO = [
 
     # permissões
     {"codigo": "permissoes:ver", "nome": "Ver permissões"},
+    {"codigo": "permissoes:configurar_acl", "nome": "Configurar ACL"},
 
     # formulários
     {"codigo": "formularios:criar", "nome": "Criar formulários"},
     {"codigo": "formularios:ver", "nome": "Ver formulários"},
-    {"codigo": "formularios:editar", "nome": "Editar formulários"}
+    {"codigo": "formularios:editar", "nome": "Editar formulários"},
+    {"codigo": "formularios:apagar", "nome": "Apagar formulários"},
+    {"codigo": "formularios:gerenciar_todos", "nome": "Gerenciar todos os formulários"},
 ]

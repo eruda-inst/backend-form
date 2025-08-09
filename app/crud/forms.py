@@ -1,10 +1,11 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session, joinedload
-from app import models, schemas
+from app import models, schemas, crud
 from uuid import uuid4, UUID
 from app.dependencies.auth import get_current_user
 
 def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: models.Usuario = Depends(get_current_user)):
+    """Cria um formulário com perguntas e garante ACL total para o grupo do criador e para o grupo admin."""
     formulario = models.Formulario(
         id=uuid4(),
         titulo=dados.titulo,
@@ -35,6 +36,13 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
                     texto=opcao.texto,
                     ordem=opcao.ordem or idx
                 ))
+
+    if getattr(usuario, "grupo_id", None):
+        crud.grant_all(db, formulario.id, usuario.grupo_id)
+
+    grupo_admin = db.query(models.Grupo).filter(models.Grupo.nome == "admin").first()
+    if grupo_admin and grupo_admin.id != getattr(usuario, "grupo_id", None):
+        crud.grant_all(db, formulario.id, grupo_admin.id)
 
     db.commit()
     db.refresh(formulario)
@@ -117,3 +125,14 @@ def adicionar_pergunta(db: Session, dados: dict) -> models.Pergunta:
     db.commit()
     db.refresh(nova)
     return nova
+
+
+
+def deletar_formulario(db: Session, formulario_id: UUID) -> bool:
+    """Remove um formulário pelo id e confirma a operação."""
+    form = db.query(models.Formulario).filter(models.Formulario.id == formulario_id).first()
+    if not form:
+        return False
+    db.delete(form)
+    db.commit()
+    return True

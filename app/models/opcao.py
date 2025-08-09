@@ -1,0 +1,18 @@
+from sqlalchemy import ForeignKey, Column, String, Integer
+from sqlalchemy.orm import relationship
+from .user import Base
+from uuid import UUID, uuid4
+
+class Opcao(Base):
+    __tablename__ = "opcoes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    pergunta_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("perguntas.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    texto = Column(String, nullable=False)
+    ordem = Column(Integer, nullable=False)
+
+    pergunta = relationship("Pergunta", back_populates="opcoes")

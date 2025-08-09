@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
-from app import schemas, crud
+from app import schemas, crud, models
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.dependencies.permissoes import require_permission
@@ -29,3 +29,16 @@ def buscar_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
     if not formulario or not formulario.ativo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado")
     return formulario
+
+@router.delete("/{formulario_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_formulario_route(
+    formulario_id: UUID,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_current_user),
+):
+    """Remove um formulário se o usuário tiver permissão global ou ACL para apagar."""
+    if not crud.tem_permissao_formulario(db, usuario, formulario_id, "apagar"):
+        raise HTTPException(status_code=403, detail="Sem permissão para apagar este formulário")
+    ok = crud.deletar_formulario(db, formulario_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Formulário não encontrado")
