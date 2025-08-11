@@ -53,11 +53,15 @@ def existe_admin(db: Session) -> bool:
 
 def deletar_usuario(db: Session, usuario_id: UUID) -> bool:
     usuario = buscar_usuario_por_id(db, usuario_id)
+    print(usuario)
     if not usuario:
         return False
 
     if usuario.grupo.nome == "admin":
         return False
+    
+    db.delete(usuario)
+    db.commit()
 
     return True
 
