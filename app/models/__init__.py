@@ -3,3 +3,4 @@ from .grupo import Grupo
 from .permissao import Permissao, FormularioPermissao
 from .forms import Formulario
 from .perguntas import Pergunta
+from .respostas import Resposta, RespostaItem

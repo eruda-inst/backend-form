@@ -24,7 +24,8 @@ class Pergunta(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,    
     )
-    respostas = relationship("Resposta", back_populates="pergunta", cascade="all, delete-orphan")
+    itens_resposta = relationship("RespostaItem", back_populates="pergunta", cascade="all, delete-orphan")
+
 
 
 class Opcao(Base):
@@ -36,13 +37,3 @@ class Opcao(Base):
     ordem = Column(Integer, nullable=True)
 
     pergunta = relationship("Pergunta", back_populates="opcoes")
-
-
-class Resposta(Base):
-    __tablename__ = "respostas"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    question_id = Column(UUID(as_uuid=True), ForeignKey("perguntas.id"), nullable=False)
-    resposta = Column(String, nullable=False)
-
-    pergunta = relationship("Pergunta", back_populates="respostas")

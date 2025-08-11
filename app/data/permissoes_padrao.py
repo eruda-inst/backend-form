@@ -22,4 +22,9 @@ PERMISSOES_PADRAO = [
     {"codigo": "formularios:editar", "nome": "Editar formulários"},
     {"codigo": "formularios:apagar", "nome": "Apagar formulários"},
     {"codigo": "formularios:gerenciar_todos", "nome": "Gerenciar todos os formulários"},
+
+    #respostas
+
+    {"codigo":"respostas:ver","nome":"Ver respostas"},
+    {"codigo":"respostas:apagar","nome":"Apagar respostas"}
 ]
