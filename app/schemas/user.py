@@ -40,9 +40,12 @@ class UsuarioUpdate(BaseModel):
     ativo: Optional[bool] = None
     genero: Optional[str] = None
     imagem: Optional[str] = None
-    grupo_id: Optional[UUID] = None
 
 
     model_config = {
-        "from_attributes": True
+        "from_attributes": True,
+        "extra":"forbid"
     }
+
+class UsuarioGrupoUpdate(BaseModel):
+    grupo_id: UUID

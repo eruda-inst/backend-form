@@ -1,4 +1,4 @@
-from .user import UsuarioCreate, UsuarioResponse, AlterarSenhaRequest, UsuarioUpdate
+from .user import UsuarioCreate, UsuarioResponse, AlterarSenhaRequest, UsuarioUpdate, UsuarioGrupoUpdate
 from .auth import LoginInput, LoginResponse, RefreshRequest
 from .grupo import PermissaoGrupoInput, GrupoErroResponse, GrupoResponse, GrupoBase, GrupoCreate, GrupoComPermissoesResponse, GrupoUpdate
 from .permissao import PermissaoResponse, FormularioPermissaoIn, FormularioPermissaoOut, FormularioPermissaoBatchIn

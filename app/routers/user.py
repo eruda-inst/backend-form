@@ -86,19 +86,42 @@ def atualizar_usuario(
     db: Session = Depends(get_db),
     user: models.Usuario = Depends(get_current_user)
 ):
+    """Permite que o usuário edite os próprios dados sem alterar grupo."""
     if str(user.id) != usuario_id:
         raise HTTPException(status_code=403, detail="Você só pode editar seus próprios dados")
 
     usuario = crud.buscar_usuario_por_id(db, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    
-    for campo, valor in dados.model_dump(exclude_unset=True).items():
+
+    payload = dados.model_dump(exclude_unset=True)
+    campos_bloqueados = {"grupo_id", "grupo_nome", "grupo"}
+    if "grupo_id" in payload:
+        raise HTTPException(status_code=403, detail="Você não pode alterar o próprio grupo")
+    if any(campo in payload for campo in campos_bloqueados):
+        raise HTTPException(status_code=403, detail="Não é permitido alterar o grupo do usuário")
+
+    for campo, valor in payload.items():
         setattr(usuario, campo, valor)
 
     db.commit()
     db.refresh(usuario)
+    return usuario
 
+@router.put("/grupo/{usuario_id}", response_model=schemas.UsuarioResponse, dependencies=[require_permission("usuarios:editar")])
+def atualizar_grupo_usuario(
+    usuario_id: UUID,
+    dados: schemas.UsuarioGrupoUpdate,
+    db: Session = Depends(get_db),
+):
+    """Altera apenas o grupo de um usuário quando o solicitante tem permissão."""
+    usuario = crud.buscar_usuario_por_id(db, str(usuario_id))
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    usuario.grupo_id = dados.grupo_id
+    db.commit()
+    db.refresh(usuario)
     return usuario
 
 

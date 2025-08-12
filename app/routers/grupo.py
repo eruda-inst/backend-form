@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import func
+from fastapi.responses import Response
 from app import models, schemas, crud
 from app.database import get_db
 from uuid import UUID
@@ -31,28 +34,31 @@ def criar_grupo(grupo: schemas.GrupoCreate, db: Session = Depends(get_db)):
 
 @router.delete("/{grupo_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[require_permission('grupos:deletar')])
 def deletar_grupo(grupo_id: UUID, db: Session = Depends(get_db)):
+    """Exclui um grupo apenas se não for 'admin' e sem usuários vinculados; retorna 409 com lista de usuários."""
     grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
     if not grupo:
         raise HTTPException(status_code=404, detail="Grupo não encontrado")
 
-    if grupo.nome == "admin":
+    if grupo.nome.strip().lower() == "admin":
         raise HTTPException(status_code=403, detail="O grupo admin não pode ser deletado")
 
-    usuarios_vinculados = db.query(models.Usuario).filter(models.Usuario.grupo_id == grupo.id).all()
-    if usuarios_vinculados:
-        usuarios_data = [
-            {"id": u.id, "nome": u.nome, "email": u.email}
-            for u in usuarios_vinculados
-        ]
-        raise HTTPException(
-            status_code=400,
-            detail=schemas.GrupoErroResponse(
-                mensagem="Existem usuários vinculados a este grupo",
-                usuarios=usuarios_data
-            ).model_dump()
-        )
+    usuarios = (
+        db.query(models.Usuario.id, models.Usuario.nome, models.Usuario.email)
+        .filter(models.Usuario.grupo_id == grupo.id)
+        .all()
+    )
+
+    if usuarios:
+        detalhe = {
+            "mensagem": "Existem usuários vinculados a este grupo",
+            "quantidade": len(usuarios),
+            "usuarios": [{"id": str(u.id), "nome": u.nome, "email": u.email} for u in usuarios]
+        }
+        raise HTTPException(status_code=409, detail=jsonable_encoder(detalhe))
+
     db.delete(grupo)
     db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.put("/{grupo_id}", status_code=status.HTTP_200_OK, dependencies=[require_permission('grupos:editar')])
 def atualizar_grupo(
@@ -63,24 +69,26 @@ def atualizar_grupo(
     grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
     if not grupo:
         raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    if grupo.nome == "admin":
+        raise HTTPException(status_code=403, detail="O grupo admin não pode ser editado")
 
-    if dados.nome:
-        grupo.nome = dados.nome
+    if dados.nome is not None:
+        if dados.nome.strip().lower() == "admin":
+            raise HTTPException(status_code=400, detail="Não é possível renomear um grupo para 'admin'")
+        grupo.nome = dados.nome.strip()
 
-    grupo.permissoes.clear()
+    if dados.permissoes_codigos is not None:
+        permissoes = (
+            db.query(models.Permissao)
+            .filter(models.Permissao.codigo.in_(dados.permissoes_codigos))
+            .all()
+        )
+        if len(permissoes) != len(dados.permissoes_codigos):
+            codigos_existentes = {p.codigo for p in permissoes}
+            codigos_invalidos = set(dados.permissoes_codigos) - codigos_existentes
+            raise HTTPException(status_code=400, detail=f"Permissões inválidas: {', '.join(sorted(codigos_invalidos))}")
+        grupo.permissoes = permissoes
 
-    permissoes = (
-        db.query(models.Permissao)
-        .filter(models.Permissao.codigo.in_(dados.permissoes_codigos))
-        .all()
-    )
-
-    if len(permissoes) != len(dados.permissoes_codigos):
-        codigos_existentes = {p.codigo for p in permissoes}
-        codigos_invalidos = set(dados.permissoes_codigos) - codigos_existentes
-        raise HTTPException(status_code=400, detail=f"Permissões inválidas: {', '.join(codigos_invalidos)}")
-
-    grupo.permissoes = permissoes
     db.commit()
-
     return {"mensagem": "Grupo atualizado com sucesso"}
