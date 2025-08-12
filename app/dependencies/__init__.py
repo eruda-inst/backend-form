@@ -1,2 +1,2 @@
 from .auth import _carregar_usuario_com_relacionamentos, get_current_user, get_current_user_ws, get_db, get_optional_user, is_admin
-from .permissoes import require_permission, require_permission_callable
+from .permissoes import require_permission, require_permission_callable, require_permission_callable_ws

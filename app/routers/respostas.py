@@ -1,22 +1,26 @@
 # app/routers/respostas.py
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from uuid import UUID
 from app.database import get_db
 from app import schemas, dependencies, crud
-from app.websockets import respostas as manager
+from app.websockets.conexoes import gerenciador
 import anyio
+
 
 router = APIRouter(prefix="/respostas", tags=["Respostas"])
 
 @router.post("/", response_model=schemas.RespostaOut, status_code=status.HTTP_201_CREATED)
 async def criar_resposta(payload: schemas.RespostaCreate, request: Request, db: Session = Depends(get_db)):
+    print("[WS] import gerenciador no POST:", hex(id(gerenciador)))
     """Cria uma resposta para um formulário e publica o evento em tempo real."""
     if not payload.origem_ip:
         payload.origem_ip = request.client.host if request and request.client else None
     resp = crud.criar(db, payload)
-    out = schemas.RespostaOut.model_validate(resp).model_dump()
-    await manager.enviar_para_sala(resp.formulario_id, {"tipo": "resposta_criada", "dados": out})
+    sala_id = f"respostas:{resp.formulario_id}"
+    out = jsonable_encoder(schemas.RespostaOut.model_validate(resp))
+    await gerenciador.enviar_para_sala(sala_id, {"tipo": "resposta_criada", "dados": out})
     return resp
 
 

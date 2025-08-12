@@ -14,6 +14,10 @@ class GerenciadorConexoes:
         self.salas: Dict[str, List[Conexao]] = {}
         self._lock = asyncio.Lock()
 
+    def contar_conexoes(self, sala_id: str) -> int:
+        return len(self.salas.get(sala_id, []))
+    
+
     async def conectar(self, sala_id: str, websocket: WebSocket, usuario: dict) -> None:
         """Adiciona um websocket à sala informada e aceita a conexão caso necessário."""
         await websocket.accept()
@@ -21,7 +25,7 @@ class GerenciadorConexoes:
             lista = self.salas.setdefault(sala_id, [])
             if not any(c.websocket is websocket for c in lista):
                 lista.append(Conexao(websocket=websocket, usuario=usuario))
-
+        print("[WS] conectado:", sala_id, "conexoes:", self.contar_conexoes(sala_id), "manager:", hex(id(self)))
     async def desconectar(self, sala_id: str, websocket: WebSocket) -> None:
         """Remove o websocket da sala; remove a sala se ficar vazia."""
         async with self._lock:
@@ -47,6 +51,7 @@ class GerenciadorConexoes:
 
     async def enviar_para_sala(self, sala_id: str, mensagem: dict) -> None:
         """Envia uma mensagem a todos na sala, removendo conexões quebradas."""
+        print("[WS] conectado:", sala_id, "conexoes:", self.contar_conexoes(sala_id), "manager:", hex(id(self)))
         await self._broadcast(sala_id, mensagem, excluir_ws=None)
 
     async def enviar_para_outros(self, sala_id: str, remetente: WebSocket, mensagem: dict) -> None:
@@ -70,6 +75,7 @@ class GerenciadorConexoes:
     async def _broadcast(self, sala_id: str, mensagem: dict, excluir_ws: Optional[WebSocket]) -> None:
         """Envia mensagem para a sala com tolerância a falhas e remoção de sockets inválidos."""
         conexoes_snapshot: List[Conexao] = list(self.salas.get(sala_id, []))
+        print("[WS] conectado:", sala_id, "conexoes:", self.contar_conexoes(sala_id))
         desconectar: List[WebSocket] = []
         for c in conexoes_snapshot:
             if excluir_ws is not None and c.websocket is excluir_ws:
@@ -89,3 +95,6 @@ class GerenciadorConexoes:
                     await ws.close()
                 except Exception:
                     pass
+
+
+gerenciador = GerenciadorConexoes()

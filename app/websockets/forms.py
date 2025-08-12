@@ -1,14 +1,13 @@
 from fastapi import APIRouter 
 from fastapi import WebSocket, WebSocketDisconnect
 from app import crud, schemas
-from .conexoes import GerenciadorConexoes
+from .conexoes import gerenciador
 from app.database import SessionLocal
 from app.dependencies.auth import get_current_user_ws
 import anyio
 
 
 router = APIRouter(prefix="/ws", tags=["Websocket - Formulários"])
-gerenciador = GerenciadorConexoes()
 
 @router.websocket("/formularios/{formulario_id}")
 async def socket_formulario(websocket: WebSocket, formulario_id: str):
