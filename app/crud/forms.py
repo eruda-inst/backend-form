@@ -1,5 +1,5 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app import models, schemas, crud
 from uuid import uuid4, UUID
 from app.dependencies.auth import get_current_user
@@ -58,22 +58,28 @@ def listar_formularios(db: Session, incluir_inativos: bool = False):
 def buscar_formulario_por_id(db: Session, formulario_id: str):
     return (
         db.query(models.Formulario)
-        .options(joinedload(models.Formulario.perguntas))
+        .options(selectinload(models.Formulario.perguntas)
+                 .selectinload(models.Pergunta.opcoes))
         .filter(models.Formulario.id == formulario_id)
         .first()
     )
 
-def atualizar_formulario_parcial(db: Session, payload: dict):
+def atualizar_formulario_parcial(db, payload: dict):
+    """Aplica alterações parciais em formulário, cria/edita perguntas e suas opções."""
     try:
         formulario_id = UUID(payload.get("formulario_id"))
-        print("Formulário_id: ", formulario_id)
-    except ValueError:
-        import logging
-        logging.exception("Erro ao converter UUID")
+    except Exception:
         return None
-    formulario = db.query(models.Formulario).options(
-        joinedload(models.Formulario.perguntas)
-    ).filter(models.Formulario.id == formulario_id).first()
+
+    formulario = (
+        db.query(models.Formulario)
+        .options(
+            selectinload(models.Formulario.perguntas)
+            .selectinload(models.Pergunta.opcoes)
+        )
+        .filter(models.Formulario.id == formulario_id)
+        .first()
+    )
     if not formulario or not formulario.ativo:
         return None
 
@@ -84,24 +90,42 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
 
     for p in payload.get("perguntas_adicionadas", []):
         nova = models.Pergunta(
+            formulario_id=formulario_id,
             texto=p.get("texto"),
-            tipo=p.get("tipo"),
+            tipo=models.TipoPergunta(p.get("tipo")),
             obrigatoria=p.get("obrigatoria", True),
             ordem_exibicao=p.get("ordem_exibicao"),
             escala_min=p.get("escala_min"),
             escala_max=p.get("escala_max"),
         )
-        formulario.perguntas.append(nova)
-        db.commit()
-        db.refresh(formulario)
-
+        if nova.tipo == models.TipoPergunta.multipla_escolha and p.get("opcoes"):
+            nova.opcoes = [
+                models.Opcao(
+                    texto=o["texto"],
+                    ordem=(o.get("ordem") if o.get("ordem") is not None else i + 1)
+                )
+                for i, o in enumerate(p["opcoes"])
+    ]
+        db.add(nova)
 
     for p in payload.get("perguntas_editadas", []):
         pergunta = db.query(models.Pergunta).filter(models.Pergunta.id == p["id"]).first()
-        if pergunta:
-            for campo in ["texto", "tipo", "obrigatoria", "ordem_exibicao", "escala_min", "escala_max"]:
-                if campo in p:
-                    setattr(pergunta, campo, p[campo])
+        if not pergunta:
+            continue
+        for campo in ["texto", "obrigatoria", "ordem_exibicao", "escala_min", "escala_max"]:
+            if campo in p:
+                setattr(pergunta, campo, p[campo])
+        if "tipo" in p:
+            pergunta.tipo = models.TipoPergunta(p["tipo"])
+        if "opcoes" in p and pergunta.tipo == models.TipoPergunta.multipla_escolha:
+            pergunta.opcoes.clear()
+            for i, o in enumerate(p["opcoes"] or []):
+                pergunta.opcoes.append(
+                    models.Opcao(
+                        texto=o["texto"],
+                        ordem=(o.get("ordem") if o.get("ordem") is not None else i + 1)
+                    )
+                )
 
     for pergunta_id in payload.get("perguntas_removidas", []):
         pergunta = db.query(models.Pergunta).filter(models.Pergunta.id == pergunta_id).first()
@@ -109,14 +133,16 @@ def atualizar_formulario_parcial(db: Session, payload: dict):
             pergunta.ativa = False
 
     db.commit()
-    db.refresh(formulario)
-    print("Perguntas após commit:", [p.texto for p in formulario.perguntas if p.ativa])
 
-    formulario = db.query(models.Formulario).options(
-        joinedload(models.Formulario.perguntas)
-    ).filter(models.Formulario.id == formulario_id).first()
-
-
+    formulario = (
+        db.query(models.Formulario)
+        .options(
+            selectinload(models.Formulario.perguntas)
+            .selectinload(models.Pergunta.opcoes)
+        )
+        .filter(models.Formulario.id == formulario_id)
+        .first()
+    )
     return formulario
 
 def adicionar_pergunta(db: Session, dados: dict) -> models.Pergunta:

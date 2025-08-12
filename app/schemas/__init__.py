@@ -4,3 +4,4 @@ from .grupo import PermissaoGrupoInput, GrupoErroResponse, GrupoResponse, GrupoB
 from .permissao import PermissaoResponse, FormularioPermissaoIn, FormularioPermissaoOut, FormularioPermissaoBatchIn
 from .forms import FormularioBase, FormularioCreate, FormularioOut, FormularioVersaoBase, FormularioVersaoCreate, FormularioVersaoOut, EdicaoFormularioBase, EdicaoFormularioCreate, EdicaoFormularioOut
 from .respostas import RespostaCreate, RespostaOut, RespostaItemCreate, RespostaItemOut
+from .perguntas import PerguntaBase, PerguntaCreate, PerguntaOut, PerguntaUpdatePayload

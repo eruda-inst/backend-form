@@ -2,7 +2,7 @@
 # app/crud/respostas.py
 from typing import List
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from fastapi import HTTPException, status
 from app import models, schemas
 
@@ -11,20 +11,48 @@ TIPO_ME = "multipla_escolha"
 TIPO_TX_SIM = "texto_simples"
 TIPO_TX_LONG = "texto_longo"
 
+def _one_value(i):
+    presentes = [v is not None and (str(v).strip() != "") for v in
+                 [i.valor_texto, i.valor_numero, i.valor_opcao_id, i.valor_opcao_texto]]
+    return sum(presentes) == 1
+
 def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaItemCreate) -> None:
-    """Valida um item de resposta conforme o tipo da pergunta."""
-    tipo = (pergunta.tipo or "").lower()
-    if tipo == TIPO_NPS:
-        if item.valor_numero is None or not (0 <= item.valor_numero <= 10):
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Pergunta {pergunta.id}: NPS requer valor_numero entre 0 e 10")
-    elif tipo == TIPO_ME:
+    if not _one_value(item):
+        raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: envie exatamente 1 campo de valor")
+
+    t = pergunta.tipo
+    if t == models.TipoPergunta.nps:
+        if item.valor_numero is None:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: NPS requer valor_numero")
+        mn = pergunta.escala_min if pergunta.escala_min is not None else 0
+        mx = pergunta.escala_max if pergunta.escala_max is not None else 10
+        if not (mn <= item.valor_numero <= mx):
+            raise HTTPException(status_code=422, detail=f"NPS fora da faixa [{mn},{mx}] na pergunta {pergunta.id}")
+
+    elif t == models.TipoPergunta.multipla_escolha:
         if not item.valor_opcao_id and not item.valor_opcao_texto:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Pergunta {pergunta.id}: múltipla escolha requer valor_opcao_id ou valor_opcao_texto")
-    elif tipo in {TIPO_TX_SIM, TIPO_TX_LONG}:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: múltipla escolha requer opção")
+        if item.valor_opcao_id:
+            ids_validos = {o.id for o in pergunta.opcoes}
+            if item.valor_opcao_id not in ids_validos:
+                raise HTTPException(status_code=422, detail=f"Opção não pertence à pergunta {pergunta.id}")
+
+    elif t in {models.TipoPergunta.texto_simples, models.TipoPergunta.texto_longo, models.TipoPergunta.data}:
         if not item.valor_texto or not item.valor_texto.strip():
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Pergunta {pergunta.id}: texto requerido")
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: texto requerido")
+
+    elif t == models.TipoPergunta.numero:
+        if item.valor_numero is None:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: número requerido")
+
+    elif t == models.TipoPergunta.caixa_selecao:
+        # aceita 0/1 em valor_numero ou "true/false" em valor_texto
+        ok = (item.valor_numero in (0, 1)) or (str(item.valor_texto).lower() in ("true","false"))
+        if not ok:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: caixa_selecao requer 0/1 ou true/false")
+
     else:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Tipo de pergunta não suportado: {tipo}")
+        raise HTTPException(status_code=422, detail=f"Tipo não suportado: {t}")
 
 def _garantir_obrigatoria(pergunta: "models.Pergunta", item: schemas.RespostaItemCreate | None) -> None:
     """Garante que perguntas obrigatórias tenham item válido presente."""
@@ -39,7 +67,13 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
     if not form:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
 
-    perguntas = db.query(models.Pergunta).filter(models.Pergunta.formulario_id == form.id).all()
+    perguntas = (
+    db.query(models.Pergunta)
+    .options(selectinload(models.Pergunta.opcoes))
+    .filter(models.Pergunta.formulario_id == form.id, models.Pergunta.ativa == True)
+    .all()
+)
+
     perguntas_map = {p.id: p for p in perguntas}
 
     itens_in = {i.pergunta_id: i for i in payload.itens}

@@ -23,14 +23,14 @@ def criar_formulario(
 def listar_formularios(incluir_inativos: bool = False, db: Session = Depends(get_db)):
     return crud.forms.listar_formularios(db, incluir_inativos)
 
-@router.get("/{formulario_id}", response_model=schemas.FormularioOut)
+@router.get("/{formulario_id}", response_model=schemas.FormularioOut, dependencies=[require_permission("formularios:ver")])
 def buscar_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
     formulario = crud.buscar_formulario_por_id(db, formulario_id)
     if not formulario or not formulario.ativo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado")
     return formulario
 
-@router.delete("/{formulario_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{formulario_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[require_permission("formularios:apagar")])
 def deletar_formulario_route(
     formulario_id: UUID,
     db: Session = Depends(get_db),
@@ -42,3 +42,7 @@ def deletar_formulario_route(
     ok = crud.deletar_formulario(db, formulario_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
+    
+@router.get("/tipos-perguntas/", dependencies=[require_permission("formularios:criar")])
+def listar_tipos():
+    return [{"value": t.value, "label": t.name} for t in models.TipoPergunta]

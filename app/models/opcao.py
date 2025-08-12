@@ -1,7 +1,8 @@
 from sqlalchemy import ForeignKey, Column, String, Integer
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 from .user import Base
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 class Opcao(Base):
     __tablename__ = "opcoes"

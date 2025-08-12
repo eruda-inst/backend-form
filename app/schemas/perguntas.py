@@ -1,26 +1,44 @@
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional, List
+from app.models.perguntas import TipoPergunta
+from .opcoes import OpcaoBase, OpcaoOut
+
 
 class PerguntaBase(BaseModel):
     texto: str
-    tipo: str  # "nps", "multipla_escolha", "texto_simples", "texto_longo"
+    tipo: TipoPergunta  # "nps", "multipla_escolha", "texto_simples", "texto_longo"
     obrigatoria: bool = True
     ordem_exibicao: Optional[int] = None
     escala_min: Optional[int] = None
     escala_max: Optional[int] = None
+    opcoes: Optional[List[OpcaoBase]] = None
+
 
 class PerguntaCreate(PerguntaBase):
     formulario_id: UUID
 
+    @model_validator(mode="after")
+    def validar_por_tipo(self):
+        if self.tipo == TipoPergunta.nps:
+            if self.escala_min is None or self.escala_max is None:
+                raise ValueError("NPS exige escala_min e escala_max")
+        if self.tipo == TipoPergunta.multipla_escolha:
+            if not self.opcoes:
+                raise ValueError("Múltipla escolha exige lista de opções")
+        return self
+
+
+
 class PerguntaOut(BaseModel):
     id: UUID
     texto: str
-    tipo: str
+    tipo: TipoPergunta
     obrigatoria: bool
-    ordem_exibicao: int
-    escala_min: Optional[int]
-    escala_max: Optional[int]
+    ordem_exibicao: int | None = None
+    escala_min: Optional[int] | None = None
+    escala_max: Optional[int] | None = None
+    opcoes: list[OpcaoOut] = []
 
     model_config = {
         "from_attributes": True
@@ -35,19 +53,6 @@ class PerguntaUpdatePayload(BaseModel):
     escala_min: Optional[int] = None
     escala_max: Optional[int] = None
 
-class OpcaoBase(BaseModel):
-    texto: str
-    ordem: Optional[int] = None
-
-class OpcaoCreate(OpcaoBase):
-    pergunta_id: UUID
-
-class OpcaoOut(OpcaoBase):
-    id: UUID
-    pergunta_id: UUID
-
-    class Config:
-        from_attributes = True
 
 class RespostaBase(BaseModel):
     resposta: str
