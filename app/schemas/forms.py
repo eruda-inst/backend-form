@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Any
 from .perguntas import PerguntaCreate, PerguntaUpdatePayload, PerguntaOut
 
@@ -8,16 +8,18 @@ from .perguntas import PerguntaCreate, PerguntaUpdatePayload, PerguntaOut
 class FormularioBase(BaseModel):
     titulo: str
     descricao: Optional[str] = None
+    recebendo_respostas: Optional[bool] = True
+
 
 class FormularioCreate(FormularioBase):
     perguntas: Optional[List[PerguntaCreate]] = []
 
-class FormularioOut(BaseModel):
+class FormularioOut(FormularioBase):
     id: UUID
-    titulo: str
-    descricao: Optional[str]
     criado_em: datetime
     perguntas: list[PerguntaOut] = []
+    ativo: bool
+
 
     model_config = {
         "from_attributes": True
@@ -27,9 +29,12 @@ class FormularioUpdatePayload(BaseModel):
     formulario_id: UUID
     titulo: Optional[str] = None
     descricao: Optional[str] = None
+    recebendo_respostas: Optional[bool] = None
+    ativo: Optional[bool] = None
     perguntas_adicionadas: Optional[List[PerguntaUpdatePayload]] = []
     perguntas_editadas: Optional[List[PerguntaUpdatePayload]] = []
     perguntas_removidas: Optional[List[UUID]] = []
+    model_config = ConfigDict(extra='forbid')
 
 class FormularioVersaoBase(BaseModel):
     versao: int

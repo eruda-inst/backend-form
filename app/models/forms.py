@@ -1,7 +1,7 @@
 from uuid import uuid4
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey, JSON, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from datetime import datetime, timezone
 from app.models.user import Base
 
@@ -15,6 +15,10 @@ class Formulario(Base):
     versao_atual = Column(Integer, default=1)
     criado_em = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     criado_por_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False)
+    recebendo_respostas: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+
+
     permissoes = relationship(
         "FormularioPermissao",
         back_populates="formulario",

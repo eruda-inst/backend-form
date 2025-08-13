@@ -46,3 +46,17 @@ def deletar_formulario_route(
 @router.get("/tipos-perguntas/", dependencies=[require_permission("formularios:criar")])
 def listar_tipos():
     return [{"value": t.value, "label": t.name} for t in models.TipoPergunta]
+
+
+@router.post("/{formulario_id}/restaurar", status_code=status.HTTP_204_NO_CONTENT, dependencies=[require_permission("formularios:restaurar")])
+def restaurar_formulario_route(
+    formulario_id: UUID,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_current_user),
+):
+    """Restaura um formulário se o usuário tiver permissão global ou ACL para restaurar."""
+    if not crud.tem_permissao_formulario(db, usuario, formulario_id, "restaurar"):
+        raise HTTPException(status_code=403, detail="Sem permissão para restaurar este formulário")
+    ok = crud.restaurar_formulario(db, formulario_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Formulário não encontrado ou já ativo")

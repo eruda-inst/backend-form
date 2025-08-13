@@ -66,6 +66,8 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
     form = db.query(models.Formulario).filter(models.Formulario.id == payload.formulario_id).first()
     if not form:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
+    if not form.recebendo_respostas:
+        raise HTTPException(status_code=403, detail="Formulário não está recebendo aceita respostas")
 
     perguntas = (
     db.query(models.Pergunta)

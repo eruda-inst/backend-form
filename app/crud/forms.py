@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload, selectinload
 from app import models, schemas, crud
 from uuid import uuid4, UUID
@@ -64,8 +64,22 @@ def buscar_formulario_por_id(db: Session, formulario_id: str):
         .first()
     )
 
+BOOL_TRUE = {"true", "1", "t", "yes", "y"}
+def _to_bool(v):
+    if isinstance(v, bool): return v
+    if isinstance(v, int): return v != 0
+    if isinstance(v, str): return v.strip().lower() in BOOL_TRUE
+    return bool(v)
+
+def _parse_tipo(valor):
+    try:
+        return models.TipoPergunta(valor) if valor is not None else None
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tipo de pergunta inválido")
+
 def atualizar_formulario_parcial(db, payload: dict):
     """Aplica alterações parciais em formulário, cria/edita perguntas e suas opções."""
+    payload.pop("ativo", None)
     try:
         formulario_id = UUID(payload.get("formulario_id"))
     except Exception:
@@ -83,10 +97,14 @@ def atualizar_formulario_parcial(db, payload: dict):
     if not formulario or not formulario.ativo:
         return None
 
-    if payload.get("titulo"):
+    if "titulo" in payload:
         formulario.titulo = payload["titulo"]
-    if payload.get("descricao"):
+    if "descricao" in payload:
         formulario.descricao = payload["descricao"]
+    if "recebendo_respostas" in payload:
+        formulario.recebendo_respostas = _to_bool(payload["recebendo_respostas"])
+    if "ativo" in payload:
+        formulario.ativo = _to_bool(payload["ativo"])
 
     for p in payload.get("perguntas_adicionadas", []):
         nova = models.Pergunta(
@@ -157,8 +175,18 @@ def adicionar_pergunta(db: Session, dados: dict) -> models.Pergunta:
 def deletar_formulario(db: Session, formulario_id: UUID) -> bool:
     """Remove um formulário pelo id e confirma a operação."""
     form = db.query(models.Formulario).filter(models.Formulario.id == formulario_id).first()
-    if not form:
+    if not form or not form.ativo:
         return False
-    db.delete(form)
+    form.ativo = False
+    db.commit()
+    return True
+
+
+def restaurar_formulario(db: Session, formulario_id: UUID) -> bool:
+    """Restaura um formulário desativado, marcando 'ativo=True'."""
+    form = db.query(models.Formulario).filter(models.Formulario.id == formulario_id).first()
+    if not form or form.ativo:
+        return False
+    form.ativo = True
     db.commit()
     return True
