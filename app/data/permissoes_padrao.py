@@ -26,5 +26,10 @@ PERMISSOES_PADRAO = [
     #respostas
 
     {"codigo":"respostas:ver","nome":"Ver respostas"},
-    {"codigo":"respostas:apagar","nome":"Apagar respostas"}
+    {"codigo":"respostas:apagar","nome":"Apagar respostas"},
+
+    #empresa
+
+    {"codigo":"empresa:ver","nome":"Ver empresa"},
+    {"codigo":"empresa:editar","nome":"Editar empresa"}
 ]

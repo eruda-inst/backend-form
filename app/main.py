@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.database import criar_tabelas, SessionLocal
-from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas
+from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,6 +69,7 @@ app.include_router(forms.router)
 app.include_router(respostas.router)
 app.include_router(forms_ws.router)
 app.include_router(respostas_ws.router)
+app.include_router(empresa.router)
 
 
 

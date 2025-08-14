@@ -2,16 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.user import UsuarioCreate, UsuarioResponse
+from app.schemas.setup import SetupPayload
 from app.crud.user import existe_admin, criar_usuario, get_usuario_admin
 from app.dependencies.auth import get_optional_user
 from app.models.grupo import Grupo
 from app.models.user import Usuario
 from app.crud.grupo import existe_grupo_admin
+from app.crud.empresa import buscar_empresa, criar_empresa
 
 router = APIRouter(prefix="/setup", tags=["Setup"])
 
 @router.post("/", response_model=UsuarioResponse)
-def setup(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+def setup(payload: SetupPayload, db: Session = Depends(get_db)):
     grupo_admin = db.query(Grupo).filter(Grupo.nome == "admin").first()
     if not grupo_admin:
         grupo_admin = Grupo(nome="admin")
@@ -21,8 +23,21 @@ def setup(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     admin_existe = db.query(Usuario).filter(Usuario.grupo_id == grupo_admin.id).first()
     if admin_existe:
         raise HTTPException(status_code=403, detail="Setup já foi realizado")
-    
-    dados = usuario.model_dump()
+    empresa_existente = buscar_empresa(db)
+    if not empresa_existente:
+        try:
+            criar_empresa(db, payload.empresa)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    else:
+        if (payload.empresa.nome and payload.empresa.nome != empresa_existente.nome) or \
+           (payload.empresa.cnpj and payload.empresa.cnpj != empresa_existente.cnpj):
+            raise HTTPException(
+                status_code=409,
+                detail="Empresa já existe com dados diferentes. Atualize via PUT /empresa."
+            )
+
+    dados = payload.usuario.model_dump()
     dados["grupo_id"] = grupo_admin.id
     usuario_corrigido = UsuarioCreate(**dados)
 

@@ -13,3 +13,11 @@ python-jose[cryptography]  # JWT com suporte a criptografia segura
 # --- Utilidades ---
 python-dotenv           # Carrega variáveis do arquivo .env para o ambiente
 pydantic[email]
+
+
+pillow>=10.0.0
+python-multipart>=0.0.9
+python-magic>=0.4.27
+filetype>=1.2.0
+boto3>=1.34.0
+aiofiles>=23.2.1

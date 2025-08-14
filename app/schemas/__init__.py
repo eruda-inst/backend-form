@@ -5,3 +5,4 @@ from .permissao import PermissaoResponse, FormularioPermissaoIn, FormularioPermi
 from .forms import FormularioBase, FormularioCreate, FormularioOut, FormularioVersaoBase, FormularioVersaoCreate, FormularioVersaoOut, EdicaoFormularioBase, EdicaoFormularioCreate, EdicaoFormularioOut
 from .respostas import RespostaCreate, RespostaOut, RespostaItemCreate, RespostaItemOut
 from .perguntas import PerguntaBase, PerguntaCreate, PerguntaOut, PerguntaUpdatePayload
+from .empresa import EmpresaCreate
