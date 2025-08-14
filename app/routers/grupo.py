@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 from fastapi.responses import Response
-from app import models, schemas, crud
+from app import models, schemas, crud, dependencies
 from app.database import get_db
 from uuid import UUID
 from app.models.permissao import Permissao
@@ -15,10 +15,22 @@ from app.dependencies.permissoes import require_permission
 
 router = APIRouter(prefix="/grupos", tags=["Grupos"])
 # 
-@router.get("/", response_model=List[schemas.GrupoComPermissoesResponse], dependencies=[require_permission('grupos:ver')])
-def listar_grupos_com_permissoes(db: Session = Depends(get_db)):
-    grupos = db.query(models.Grupo).options(selectinload(models.Grupo.permissoes)).all()
-    return grupos
+@router.get("/", response_model=List[schemas.GrupoComPermissoesResponse], response_model_exclude_none=True, dependencies=[require_permission('grupos:ver')])
+def listar_grupos_com_permissoes(db: Session = Depends(get_db), usuario: models.Usuario = Depends(dependencies.get_current_user)):
+    pode_ver_permissoes = crud.tem_permissao(db, usuario, "permissoes:ver")
+    
+    if pode_ver_permissoes:
+        grupos = (
+        db.query(models.Grupo).options(selectinload(models.Grupo.permissoes)).all()
+        )    
+        return grupos
+
+    grupos = (
+        db.query(models.Grupo)
+        .options(selectinload(models.Grupo.permissoes))
+        .all()
+    )
+    return [{"id": g.id, "nome": g.nome} for g in grupos]
 
 @router.get("/grupo-admin-id")
 def grupo_admin_id(db: Session = Depends(get_db)):

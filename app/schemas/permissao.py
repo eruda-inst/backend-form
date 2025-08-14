@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 from uuid import UUID
-from typing import List
+from typing import List, Optional
 
 
 class PermissaoResponse(BaseModel):
     id: UUID
     codigo: str
-    nome: str
+    nome: Optional[str] = None
 
     model_config = {
         "from_attributes": True

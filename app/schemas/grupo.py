@@ -35,7 +35,7 @@ class PermissaoGrupoInput(BaseModel):
 class GrupoComPermissoesResponse(BaseModel):
     id: UUID
     nome: str
-    permissoes: List[PermissaoResponse]
+    permissoes: Optional[List[PermissaoResponse]] = None
 
     model_config = {
         "from_attributes": True

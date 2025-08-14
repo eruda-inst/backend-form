@@ -109,3 +109,11 @@ def grant_all(db, formulario_id, grupo_id):
     """Concede todas as permissões de ACL para um grupo em um formulário."""
     payload = schemas.FormularioPermissaoIn(grupo_id=grupo_id, pode_ver=True, pode_editar=True, pode_apagar=True)
     return upsert_acl(db, formulario_id, payload)
+
+def tem_permissao(db: Session, usuario: models.Usuario, codigo: str) -> bool:
+    """Retorna True se o usuário possuir permissão informada."""
+    if usuario.grupo and any(p.codigo == codigo for p in usuario.grupo.permissoes):
+        return True
+    if getattr(usuario, "permissoes", None) and any(p.codigo == codigo for p in usuario.permissoes):
+        return True
+    return False
