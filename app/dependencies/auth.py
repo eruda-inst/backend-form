@@ -55,6 +55,8 @@ def get_current_user(
     return usuario
 
 async def get_current_user_ws(websocket: WebSocket) -> Usuario | None:
+    token = websocket.query_params.get("access_token")
+
     if not token:
         token = websocket.cookies.get("access_token")
 
