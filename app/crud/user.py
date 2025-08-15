@@ -78,3 +78,19 @@ def deletar_me(db: Session, usuario_id: UUID) -> bool:
     return True
 
 
+def atualizar_imagem_usuario(db: Session, usuario_id, caminho_relativo: str) -> models.Usuario:
+    """Atualiza o campo imagem do usuário e retorna o usuário atualizado."""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("Usuário não encontrado")
+    usuario.imagem = caminho_relativo
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+def obter_usuario_por_id(db: Session, usuario_id):
+    """Retorna o usuário pelo id."""
+    return db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+
+

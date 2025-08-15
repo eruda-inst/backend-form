@@ -1,10 +1,12 @@
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from app.database import criar_tabelas, SessionLocal
-from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from app.core.config import settings
+from contextlib import asynccontextmanager
+from app.database import criar_tabelas, SessionLocal
+from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa
 from app.utils.seed import seed_grupo_admin_e_permissoes
 from .websockets import forms as forms_ws
 from .websockets import respostas as respostas_ws
@@ -59,6 +61,7 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+app.mount(settings.MEDIA_URL, StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(setup.router)

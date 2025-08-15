@@ -1,4 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, Request, File
+from fastapi.responses import RedirectResponse, FileResponse
+from app.utils.media import public_media_url, absolute_media_path, guess_mime_type
+from app.core.config import settings
+from app.utils.images import save_user_image, remove_media_file
+from app.crud.user import atualizar_imagem_usuario
 from sqlalchemy.orm import Session
 from app import schemas, crud, database, models
 from app.models import Usuario as UsuarioModel
@@ -161,4 +167,71 @@ def alterar_senha(
     db.commit()
     db.refresh(usuario_alvo)
     return usuario_alvo
+
+
+
+def _url_da_imagem(rel_path: str, request: Request) -> str:
+    """Retorna URL absoluta para a imagem a partir do caminho relativo."""
+    if not rel_path:
+        return ""
+    base = (str(settings.BASE_URL).rstrip("/") if settings.BASE_URL else str(request.base_url).rstrip("/"))
+    return f"{base}{settings.MEDIA_URL}/{rel_path}"
+
+@router.post("/me/imagem")
+async def enviar_imagem_perfil_me(
+    request: Request,
+    arquivo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_current_user),
+):
+    """Recebe e salva a imagem de perfil do usuário autenticado e retorna metadados e URL."""
+    try:
+        rel = save_user_image(arquivo, str(usuario.id))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if usuario.imagem:
+        remove_media_file(usuario.imagem)
+    usuario = atualizar_imagem_usuario(db, usuario.id, rel)
+    return {
+        "usuario_id": str(usuario.id),
+        "imagem": usuario.imagem,
+        "url": _url_da_imagem(usuario.imagem, request),
+    }
+
+
+@router.get("/me/imagem")
+def obter_imagem_perfil_me(request: Request, usuario: models.Usuario = Depends(get_current_user)):
+    """Redireciona para a URL pública da imagem de perfil do usuário autenticado."""
+    if not usuario.imagem:
+        raise HTTPException(status_code=404, detail="Imagem não cadastrada")
+    return RedirectResponse(public_media_url(usuario.imagem, request))
+
+@router.get("/me/imagem/raw")
+def obter_imagem_perfil_me_raw(usuario: models.Usuario = Depends(get_current_user)):
+    """Retorna o arquivo binário da imagem de perfil do usuário autenticado."""
+    if not usuario.imagem:
+        raise HTTPException(status_code=404, detail="Imagem não cadastrada")
+    abs_path = absolute_media_path(usuario.imagem)
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    return FileResponse(abs_path, media_type=guess_mime_type(usuario.imagem))
+
+@router.get("/{usuario_id}/imagem", dependencies=[require_permission("usuarios:ver")])
+def obter_imagem_perfil_por_id(usuario_id: UUID, request: Request, db: Session = Depends(get_db)):
+    """Redireciona para a URL pública da imagem de perfil do usuário por id."""
+    u = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not u or not u.imagem:
+        raise HTTPException(status_code=404, detail="Imagem não cadastrada")
+    return RedirectResponse(public_media_url(u.imagem, request))
+
+@router.get("/{usuario_id}/imagem/raw", dependencies=[require_permission("usuarios:ver")])
+def obter_imagem_perfil_por_id_raw(usuario_id: UUID, db: Session = Depends(get_db)):
+    """Retorna o arquivo binário da imagem de perfil do usuário por id."""
+    u = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not u or not u.imagem:
+        raise HTTPException(status_code=404, detail="Imagem não cadastrada")
+    abs_path = absolute_media_path(u.imagem)
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    return FileResponse(abs_path, media_type=guess_mime_type(u.imagem))
 

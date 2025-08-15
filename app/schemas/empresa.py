@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, AnyUrl
 from typing import Optional
 from uuid import UUID
 
@@ -20,6 +20,7 @@ class EmpresaResponse(BaseModel):
     nome: str
     cnpj: str
     logo_url: Optional[HttpUrl] = None
+    logo_public_url: Optional[AnyUrl] = None
     class Config:
         from_attributes = True
 

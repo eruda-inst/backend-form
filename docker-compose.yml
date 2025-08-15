@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:15
@@ -15,13 +13,17 @@ services:
       - pesquisa_net
 
   api:
+    working_dir: /app
     build: .
     container_name: pesquisa_api
-    command: ["/wait-for.sh", "db", "5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["/wait-for.sh","db","5432","--","/start.sh"]
+    environment:
+      - RUN_MIGRATIONS=0 
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+      - media:/app/media
     depends_on:
       - db
     env_file:
@@ -29,10 +31,9 @@ services:
     networks:
       - pesquisa_net
 
-
-
 volumes:
   pgdata:
+  media:
 
 networks:
   pesquisa_net:

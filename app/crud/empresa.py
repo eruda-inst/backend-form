@@ -1,6 +1,7 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import exists
+from app import models
 from app.models.empresa import Empresa
 from app.schemas.empresa import EmpresaCreate, EmpresaUpdate
 from app.services.cnpj import validar_cnpj
@@ -46,6 +47,21 @@ def atualizar_empresa(db: Session, dados: EmpresaUpdate) -> Optional[Empresa]:
         emp.cnpj = dados.cnpj
     if dados.logo_url is not None:
         emp.logo_url = str(dados.logo_url)
+    db.commit()
+    db.refresh(emp)
+    return emp
+
+def obter_unica_empresa(db: Session) -> models.Empresa | None:
+    """Retorna a única empresa cadastrada (ou None)."""
+    return db.query(models.Empresa).first()
+
+def atualizar_logo_empresa(db: Session, empresa_id, caminho_relativo: str) -> models.Empresa:
+    """Atualiza o campo logo_url da empresa e retorna a empresa atualizada."""
+    emp = db.query(models.Empresa).filter(models.Empresa.id == empresa_id).first()
+    if not emp:
+        raise ValueError("Empresa não encontrada")
+    emp.logo_url = caminho_relativo
+    db.add(emp)
     db.commit()
     db.refresh(emp)
     return emp
