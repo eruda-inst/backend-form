@@ -55,7 +55,13 @@ def get_current_user(
     return usuario
 
 async def get_current_user_ws(websocket: WebSocket) -> Usuario | None:
-    token = websocket.cookies.get("access_token")
+    if not token:
+        token = websocket.cookies.get("access_token")
+
+    if not token:
+        proto = websocket.headers.get("sec-websocket-protocol")
+        if proto and proto.startswith("Bearer "):
+            token = proto.removeprefix("Bearer ").strip()
 
     if not token and "authorization" in websocket.headers:
         auth = websocket.headers["authorization"]
