@@ -1,4 +1,4 @@
-from fastapi import Request, Depends, HTTPException, WebSocket
+from fastapi import Request, Depends, HTTPException, WebSocket, WebSocketException
 from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.crud.user import buscar_usuario_por_id
@@ -71,6 +71,7 @@ async def get_current_user_ws(websocket: WebSocket) -> Usuario | None:
             token = auth.split(" ")[1]
 
     if not token:
+        raise WebSocketException(code=1008, reason="Missing token")
         await websocket.close(code=1008)
         return None
 
@@ -78,7 +79,7 @@ async def get_current_user_ws(websocket: WebSocket) -> Usuario | None:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
-            await websocket.close(code=1008)
+            raise WebSocketException(code=1008, reason="Invalid subject")
             return None
 
         db = SessionLocal()
@@ -86,13 +87,13 @@ async def get_current_user_ws(websocket: WebSocket) -> Usuario | None:
         db.close()
 
         if usuario is None:
-            await websocket.close(code=1008)
+            raise WebSocketException(code=1008, reason="Invalid subject")
             return None
 
         return usuario
 
     except JWTError:
-        await websocket.close(code=1008)
+        raise WebSocketException(code=1008, reason="Invalid subject")
         return None
 
 
