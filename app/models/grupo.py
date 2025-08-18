@@ -14,5 +14,8 @@ class Grupo(Base):
     usuarios = relationship("Usuario", back_populates="grupo")
 
     permissoes = relationship("Permissao", secondary=grupo_permissoes, back_populates="grupos")
-    formularios_permissoes = relationship("FormularioPermissao", back_populates="grupo", cascade="all, delete-orphan")
-
+    formularios_permissoes = relationship( 
+        "FormularioPermissao",
+        back_populates="grupo",
+        cascade="all, delete-orphan",
+    )

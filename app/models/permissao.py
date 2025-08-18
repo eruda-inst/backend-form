@@ -33,4 +33,4 @@ class FormularioPermissao(Base):
     pode_apagar = Column(Boolean, default=False, nullable=False)
 
     formulario = relationship("Formulario", back_populates="permissoes")
-    grupo = relationship("Grupo", back_populates="formulario_permissoes")
+    grupo = relationship("Grupo", back_populates="formularios_permissoes")
