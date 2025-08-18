@@ -35,6 +35,7 @@ class PerguntaOut(BaseModel):
     texto: str
     tipo: TipoPergunta
     obrigatoria: bool
+    ativa: bool
     ordem_exibicao: int | None = None
     escala_min: Optional[int] | None = None
     escala_max: Optional[int] | None = None

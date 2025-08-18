@@ -31,6 +31,7 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
         estado = await anyio.to_thread.run_sync(_carregar_estado)
         if estado:
             payload = schemas.FormularioOut.model_validate(estado).model_dump(mode="json")
+            payload["perguntas"] = [p for p in payload.get("perguntas", []) if p.get("ativa")]
             await gerenciador.enviar_para_usuario(websocket, {"tipo": "estado_inicial", "conteudo": payload})
 
         await gerenciador.enviar_para_sala(
@@ -52,6 +53,7 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
                 resultado = await anyio.to_thread.run_sync(_atualizar)
                 if resultado:
                     payload = schemas.FormularioOut.model_validate(resultado).model_dump(mode="json")
+                    payload["perguntas"] = [p for p in payload.get("perguntas", []) if p.get("ativa")]
                     await gerenciador.enviar_para_sala(
                         formulario_id,
                         {"tipo": "formulario_atualizado", "conteudo": payload}

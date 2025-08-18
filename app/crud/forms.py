@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload, with_loader_criteria
 from app import models, schemas, crud
 from uuid import uuid4, UUID
 from app.dependencies.auth import get_current_user
@@ -60,7 +60,7 @@ def buscar_formulario_por_id(db: Session, formulario_id: str):
         db.query(models.Formulario)
         .options(selectinload(models.Formulario.perguntas)
                  .selectinload(models.Pergunta.opcoes))
-        .filter(models.Formulario.id == formulario_id)
+        .filter(models.Formulario.id == formulario_id, models.Pergunta.ativa==True)
         .first()
     )
 
@@ -155,6 +155,7 @@ def atualizar_formulario_parcial(db, payload: dict):
     formulario = (
         db.query(models.Formulario)
         .options(
+            with_loader_criteria(models.Pergunta, models.Pergunta.ativa == True),
             selectinload(models.Formulario.perguntas)
             .selectinload(models.Pergunta.opcoes)
         )
