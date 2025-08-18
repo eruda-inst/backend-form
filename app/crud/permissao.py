@@ -1,5 +1,5 @@
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app import models, schemas
 from typing import Literal, Optional, List
 from uuid import UUID
@@ -100,6 +100,7 @@ def listar_acl(db: Session, formulario_id: UUID) -> List[models.FormularioPermis
     """Lista todas as ACLs de um formulário."""
     return (
         db.query(models.FormularioPermissao)
+        .options(joinedload(models.FormularioPermissao.grupo))
         .filter(models.FormularioPermissao.formulario_id == formulario_id)
         .all()
     )
