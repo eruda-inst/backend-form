@@ -1,8 +1,11 @@
+import anyio
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload, selectinload, with_loader_criteria
 from app import models, schemas, crud
 from uuid import uuid4, UUID
 from app.dependencies.auth import get_current_user
+from app.websockets.notificadores_forms import notificar_formulario_criado, notificar_formulario_apagado, notificar_formulario_atualizado
+
 
 def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: models.Usuario = Depends(get_current_user)):
     """Cria um formulário com perguntas e garante ACL total para o grupo do criador e para o grupo admin."""
@@ -46,6 +49,7 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
 
     db.commit()
     db.refresh(formulario)
+    anyio.from_thread.run(notificar_formulario_criado, str(formulario.id))
     return formulario
 
 
@@ -146,11 +150,27 @@ def atualizar_formulario_parcial(db, payload: dict):
                 )
 
     for pergunta_id in payload.get("perguntas_removidas", []):
-        pergunta = db.query(models.Pergunta).filter(models.Pergunta.id == pergunta_id).first()
+        try:
+            pid = UUID(pergunta_id)
+        except Exception:
+            continue
+        pergunta = (
+            db.query(models.Pergunta)
+                .filter(models.Pergunta.id == pid,
+                        models.Pergunta.formulario_id == formulario_id
+                )
+                .first())
         if pergunta:
             pergunta.ativa = False
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    else:
+        anyio.from_thread.run(notificar_formulario_atualizado, str(formulario_id))
+
 
     formulario = (
         db.query(models.Formulario)
@@ -180,6 +200,8 @@ def deletar_formulario(db: Session, formulario_id: UUID) -> bool:
         return False
     form.ativo = False
     db.commit()
+    anyio.from_thread.run(notificar_formulario_apagado, str(formulario_id))
+
     return True
 
 
