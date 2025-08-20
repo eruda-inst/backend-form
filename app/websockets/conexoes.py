@@ -7,7 +7,7 @@ import asyncio
 @dataclass
 class Conexao:
     websocket: WebSocket
-    usuario: dict  # idealmente conter ao menos {"id": "...", "nome": "..."} ou similar
+    usuario: dict 
 
 class GerenciadorConexoes:
     def __init__(self):

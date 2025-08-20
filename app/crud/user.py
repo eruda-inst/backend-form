@@ -13,8 +13,7 @@ def criar_usuario(db: Session, usuario: schemas.UsuarioCreate) -> models.Usuario
         grupo_id=usuario.grupo_id,
         ativo=usuario.ativo,
         username=usuario.username,
-        genero=usuario.genero,
-        imagem=usuario.imagem
+        genero=usuario.genero
     )
     db.add(db_usuario)
     db.commit()

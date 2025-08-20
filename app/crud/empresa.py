@@ -24,7 +24,7 @@ def criar_empresa(db: Session, dados: EmpresaCreate) -> Empresa:
         raise ValueError("CNPJ já cadastrado")
     if db.query(Empresa).filter(Empresa.nome == dados.nome).first():
         raise ValueError("Nome de empresa já cadastrado")
-    emp = Empresa(nome=dados.nome, cnpj=dados.cnpj, logo_url=str(dados.logo_url) if dados.logo_url else None)
+    emp = Empresa(nome=dados.nome, cnpj=dados.cnpj)
     db.add(emp)
     db.commit()
     db.refresh(emp)

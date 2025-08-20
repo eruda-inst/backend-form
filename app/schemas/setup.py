@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from app.schemas import EmpresaCreate, UsuarioCreate
+from app.schemas import UsuarioResponse, EmpresaResponse
 
-class SetupPayload(BaseModel):
-    usuario: UsuarioCreate
-    empresa: EmpresaCreate
+class SetupResponse(BaseModel):
+    usuario: UsuarioResponse
+    empresa: EmpresaResponse
