@@ -66,9 +66,6 @@ def buscar_por_id(usuario_id: str, db: Session = Depends(get_db), user: models.U
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return usuario
 
-@router.get("/me", response_model=schemas.UsuarioResponse)
-def perfil(current_user: models.Usuario = Depends(get_current_user)):
-    return current_user
 
 @router.get("/{usuario_id}/permissoes")
 def permissoes_do_usuario(usuario_id: UUID, db: Session = Depends(get_db)):
