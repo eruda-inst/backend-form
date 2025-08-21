@@ -23,7 +23,7 @@ def criar_formulario(
 def listar_formularios(incluir_inativos: bool = False, db: Session = Depends(get_db)):
     return crud.forms.listar_formularios(db, incluir_inativos)
 
-@router.get("/{formulario_id}", response_model=schemas.FormularioOut)
+@router.get("/{formulario_id}", response_model=schemas.FormularioOut, dependencies=[require_permission("formularios:ver")])
 def buscar_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
     formulario = crud.buscar_formulario_por_id(db, formulario_id)
     if not formulario or not formulario.ativo:
