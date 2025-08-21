@@ -213,3 +213,13 @@ def restaurar_formulario(db: Session, formulario_id: UUID) -> bool:
     form.ativo = True
     db.commit()
     return True
+
+def obter_formulario_publico_por_slug(db: Session, slug: str) -> models.Formulario | None:
+    """Retorna um formulário publicado com perguntas ativas e ordenadas pelo slug público."""
+    return(
+        db.query(models.Formulario)
+        .options(selectinload(models.Formulario.perguntas)
+                 .selectinload(models.Pergunta.opcoes))
+        .filter(models.Formulario.slug_publico == slug, models.Pergunta.ativa==True)
+        .first()
+    )

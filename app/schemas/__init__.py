@@ -2,7 +2,7 @@ from .user import UsuarioCreate, UsuarioResponse, AlterarSenhaRequest, UsuarioUp
 from .auth import LoginInput, LoginResponse, RefreshRequest
 from .grupo import PermissaoGrupoInput, GrupoErroResponse, GrupoResponse, GrupoBase, GrupoCreate, GrupoComPermissoesResponse, GrupoUpdate
 from .permissao import PermissaoResponse, FormularioPermissaoIn, FormularioPermissaoOut, FormularioPermissaoBatchIn
-from .forms import FormularioBase, FormularioCreate, FormularioOut, FormularioVersaoBase, FormularioVersaoCreate, FormularioVersaoOut, EdicaoFormularioBase, EdicaoFormularioCreate, EdicaoFormularioOut
+from .forms import FormularioBase, FormularioCreate, FormularioOut, FormularioVersaoBase, FormularioVersaoCreate, FormularioVersaoOut, EdicaoFormularioBase, EdicaoFormularioCreate, EdicaoFormularioOut, FormularioPublicoResponse, FormularioUpdatePayload, FormularioSlug
 from .respostas import RespostaCreate, RespostaOut, RespostaItemCreate, RespostaItemOut
 from .perguntas import PerguntaBase, PerguntaCreate, PerguntaOut, PerguntaUpdatePayload
 from .empresa import EmpresaCreate, EmpresaResponse

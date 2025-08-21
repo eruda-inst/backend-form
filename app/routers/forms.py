@@ -5,6 +5,9 @@ from app import schemas, crud, models
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.dependencies.permissoes import require_permission
+from app.utils.slugs import gerar_slug_publico
+
+
 
 
 
@@ -60,3 +63,41 @@ def restaurar_formulario_route(
     ok = crud.restaurar_formulario(db, formulario_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Formulário não encontrado ou já ativo")
+    
+@router.get("/publico/{slug}", response_model=schemas.FormularioPublicoResponse)
+def obter_formulario_publico(slug: str, db: Session = Depends(get_db)):
+    formulario = crud.forms.obter_formulario_publico_por_slug(db, slug)
+    if not formulario:
+        raise HTTPException(status_code=404, detail="Formulário não encontrado")
+    return {
+        "id":formulario.id,
+        "titulo": formulario.titulo,
+        "descricao": formulario.descricao,
+        "perguntas": formulario.perguntas,
+        "ativo": formulario.ativo,
+
+    }
+
+
+@router.post("/{formulario_id}/publicar", status_code=status.HTTP_200_OK, dependencies=[require_permission("formularios:editar")])
+def publicar_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
+    """Ativa o acesso público do formulário e garante um slug público."""
+    form = db.query(models.Formulario).filter(models.Formulario.id == formulario_id).first()
+    if not form:
+        raise HTTPException(status_code=404, detail="Formulário não encontrado")
+    if not form.slug_publico:
+        form.slug_publico = gerar_slug_publico()
+    form.recebendo_respostas = True
+    db.commit()
+    db.refresh(form)
+    return {"slug_publico": form.slug_publico, "recebendo_respostas": form.recebendo_respostas}
+
+@router.post("/{formulario_id}/despublicar", status_code=status.HTTP_200_OK, dependencies=[require_permission("formularios:editar")])
+def despublicar_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
+    """Desativa o acesso público do formulário."""
+    form = db.query(models.Formulario).filter(models.Formulario.id == formulario_id).first()
+    if not form:
+        raise HTTPException(status_code=404, detail="Formulário não encontrado")
+    form.recebendo_respostas = False
+    db.commit()
+    return {"slug_publico": form.slug_publico, "recebendo_respostas": form.recebendo_respostas}

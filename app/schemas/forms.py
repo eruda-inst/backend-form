@@ -16,10 +16,26 @@ class FormularioCreate(FormularioBase):
 
 class FormularioOut(FormularioBase):
     id: UUID
-    criado_em: datetime
+    criado_em: Optional[datetime] = None
     perguntas: list[PerguntaOut] = []
     ativo: bool
+    slug_publico: Optional[str] = None
 
+
+
+    model_config = {
+        "from_attributes": True
+    }
+
+class FormularioSlug(BaseModel):
+    slug_publico: str
+
+
+class FormularioPublicoResponse(BaseModel):
+    id: UUID
+    titulo: str
+    descricao: Optional[str] = None
+    perguntas: List[PerguntaOut]
 
     model_config = {
         "from_attributes": True
@@ -71,4 +87,7 @@ class EdicaoFormularioOut(EdicaoFormularioBase):
 
     class Config:
         from_attributes = True
+
+
+    
 

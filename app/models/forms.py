@@ -15,8 +15,9 @@ class Formulario(Base):
     versao_atual = Column(Integer, default=1)
     criado_em = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     criado_por_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False)
-    recebendo_respostas: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    recebendo_respostas: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    slug_publico = Column(String(64), nullable=True, unique=True, index=True)
 
 
     permissoes = relationship(
