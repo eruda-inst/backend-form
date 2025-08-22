@@ -45,6 +45,15 @@ def deletar_formulario_route(
     ok = crud.deletar_formulario(db, formulario_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
+
+
+@router.get("/{formulario_id}/slug", response_model=schemas.FormularioSlug, dependencies=[require_permission("formularios:ver")])
+def obter_slug_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
+    """Obtém o slug de um formulário pelo ID."""
+    formulario = crud.forms.obter_formulario_por_id(db, formulario_id)
+    if not formulario or not formulario.ativo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado")
+    return {"slug_publico": formulario.slug_publico}
     
 @router.get("/tipos-perguntas/", dependencies=[require_permission("formularios:criar")])
 def listar_tipos():
@@ -70,13 +79,14 @@ def obter_formulario_publico(slug: str, db: Session = Depends(get_db)):
     if not formulario:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
     return {
-        "id":formulario.id,
         "titulo": formulario.titulo,
         "descricao": formulario.descricao,
         "perguntas": formulario.perguntas,
         "ativo": formulario.ativo,
 
     }
+
+
 
 
 @router.post("/{formulario_id}/publicar", status_code=status.HTTP_200_OK, dependencies=[require_permission("formularios:editar")])

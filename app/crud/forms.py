@@ -59,6 +59,13 @@ def listar_formularios(db: Session, incluir_inativos: bool = False):
         query = query.filter(models.Formulario.ativo.is_(True))
     return query.all()
 
+def obter_formulario_por_id(db: Session, formulario_id: str):
+    return (
+        db.query(models.Formulario)
+        .filter(models.Formulario.id == formulario_id)
+        .first()
+    )
+
 def buscar_formulario_por_id(db: Session, formulario_id: str):
     return (
         db.query(models.Formulario)

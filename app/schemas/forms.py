@@ -32,7 +32,6 @@ class FormularioSlug(BaseModel):
 
 
 class FormularioPublicoResponse(BaseModel):
-    id: UUID
     titulo: str
     descricao: Optional[str] = None
     perguntas: List[PerguntaOut]
