@@ -64,10 +64,11 @@ def listar(request: Request, db: Session = Depends(get_db), current_user: models
     return usuarios
 
 @router.get("/{usuario_id}", response_model=schemas.UsuarioResponse, dependencies=[require_permission('usuarios:ver')])
-def buscar_por_id(usuario_id: str, db: Session = Depends(get_db), user: models.Usuario = Depends(get_current_user)):
+def buscar_por_id(request: Request, usuario_id: str, db: Session = Depends(get_db), user: models.Usuario = Depends(get_current_user)):
     usuario = crud.buscar_usuario_por_id(db, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    usuario.imagem = _url_da_imagem(usuario.imagem, request)
     return usuario
 
 
