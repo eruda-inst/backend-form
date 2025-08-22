@@ -201,6 +201,28 @@ async def enviar_imagem_perfil_me(
     }
 
 
+@router.put("/me/imagem")
+async def atualizar_imagem_perfil_me(
+    request: Request,
+    arquivo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_current_user),
+):
+    """Atualiza a imagem de perfil do usuário autenticado e retorna metadados e URL."""
+    try:
+        rel = save_user_image(arquivo, str(usuario.id))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if usuario.imagem:
+        remove_media_file(usuario.imagem)
+    usuario = atualizar_imagem_usuario(db, usuario.id, rel)
+    return {
+        "usuario_id": str(usuario.id),
+        "imagem": usuario.imagem,
+        "url": _url_da_imagem(usuario.imagem, request),
+    }
+
+
 @router.get("/me/imagem")
 def obter_imagem_perfil_me(request: Request, usuario: models.Usuario = Depends(get_current_user)):
     """Redireciona para a URL pública da imagem de perfil do usuário autenticado."""

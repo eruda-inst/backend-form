@@ -63,6 +63,30 @@ async def enviar_logo_empresa(
     }
 
 
+@router.put("/logo", dependencies=[require_permission("empresa:editar")])
+async def atualizar_logo_empresa_route(
+    request: Request,
+    arquivo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Recebe e salva a logo da empresa única e retorna metadados e URL pública."""
+    empresa = obter_unica_empresa(db)
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Nenhuma empresa cadastrada")
+    try:
+        rel = save_company_logo(arquivo, str(empresa.id))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if empresa.logo_url:
+        remove_media_file(empresa.logo_url)
+    empresa = atualizar_logo_empresa(db, empresa.id, rel)
+    return {
+        "empresa_id": str(empresa.id),
+        "logo": empresa.logo_url,
+        "url": _url_media(empresa.logo_url, request),
+    }
+
+
 @router.get("/logo", dependencies=[require_permission("empresa:ver")])
 def obter_logo_empresa(request: Request, db: Session = Depends(get_db)):
     """Redireciona para a URL pública da logo da empresa única."""
