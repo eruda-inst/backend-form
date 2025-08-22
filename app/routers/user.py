@@ -56,8 +56,12 @@ def criar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db),
 
 
 @router.get("/", response_model=list[schemas.UsuarioResponse], dependencies=[require_permission('usuarios:ver')])
-def listar(db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
-    return crud.listar_usuarios(db)
+def listar(request: Request, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    usuarios = crud.listar_usuarios(db)
+    for usuario in usuarios:
+        if usuario.imagem:
+            usuario.imagem = _url_da_imagem(usuario.imagem, request)
+    return usuarios
 
 @router.get("/{usuario_id}", response_model=schemas.UsuarioResponse, dependencies=[require_permission('usuarios:ver')])
 def buscar_por_id(usuario_id: str, db: Session = Depends(get_db), user: models.Usuario = Depends(get_current_user)):
