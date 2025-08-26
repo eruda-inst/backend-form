@@ -46,10 +46,12 @@ def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaIt
             raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: número requerido")
 
     elif t == models.TipoPergunta.caixa_selecao:
-        # aceita 0/1 em valor_numero ou "true/false" em valor_texto
-        ok = (item.valor_numero in (0, 1)) or (str(item.valor_texto).lower() in ("true","false"))
-        if not ok:
-            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: caixa_selecao requer 0/1 ou true/false")
+        if not item.valor_opcao_id and not item.valor_opcao_texto:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: caixa_selecao requer ao menos uma opção")
+        if item.valor_opcao_id:
+            ids_validos = {o.id for o in pergunta.opcoes}
+            if item.valor_opcao_id not in ids_validos:
+                raise HTTPException(status_code=422, detail=f"Opção não pertence à pergunta {pergunta.id}")
 
     else:
         raise HTTPException(status_code=422, detail=f"Tipo não suportado: {t}")
