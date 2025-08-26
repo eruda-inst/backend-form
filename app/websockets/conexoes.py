@@ -25,7 +25,6 @@ class GerenciadorConexoes:
             lista = self.salas.setdefault(sala_id, [])
             if not any(c.websocket is websocket for c in lista):
                 lista.append(Conexao(websocket=websocket, usuario=usuario))
-        print("[WS] conectado:", sala_id, "conexoes:", self.contar_conexoes(sala_id), "manager:", hex(id(self)))
     async def desconectar(self, sala_id: str, websocket: WebSocket) -> None:
         """Remove o websocket da sala; remove a sala se ficar vazia."""
         async with self._lock:
@@ -51,7 +50,6 @@ class GerenciadorConexoes:
 
     async def enviar_para_sala(self, sala_id: str, mensagem: dict) -> None:
         """Envia uma mensagem a todos na sala, removendo conexões quebradas."""
-        print("[WS] conectado:", sala_id, "conexoes:", self.contar_conexoes(sala_id), "manager:", hex(id(self)))
         await self._broadcast(sala_id, mensagem, excluir_ws=None)
 
     async def enviar_para_outros(self, sala_id: str, remetente: WebSocket, mensagem: dict) -> None:

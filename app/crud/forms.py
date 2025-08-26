@@ -7,6 +7,11 @@ from app.dependencies.auth import get_current_user
 from app.websockets.notificadores_forms import notificar_formulario_criado, notificar_formulario_apagado, notificar_formulario_atualizado
 
 
+TIPOS_COM_OPCOES = {
+    models.TipoPergunta.multipla_escolha,
+    models.TipoPergunta.caixa_selecao,
+}
+
 def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: models.Usuario = Depends(get_current_user)):
     """Cria um formulário com perguntas e garante ACL total para o grupo do criador e para o grupo admin."""
     formulario = models.Formulario(
@@ -146,7 +151,7 @@ def atualizar_formulario_parcial(db, payload: dict):
                 setattr(pergunta, campo, p[campo])
         if "tipo" in p:
             pergunta.tipo = models.TipoPergunta(p["tipo"])
-        if "opcoes" in p and pergunta.tipo == models.TipoPergunta.multipla_escolha:
+        if ("opcoes" in p) and (pergunta.tipo in TIPOS_COM_OPCOES):
             pergunta.opcoes.clear()
             for i, o in enumerate(p["opcoes"] or []):
                 pergunta.opcoes.append(
