@@ -11,13 +11,19 @@ import anyio
 
 router = APIRouter(prefix="/respostas", tags=["Respostas"])
 
-@router.post("/", response_model=schemas.RespostaOut, status_code=status.HTTP_201_CREATED)
-async def criar_resposta(payload: schemas.RespostaCreate, request: Request, db: Session = Depends(get_db)):
-    print("[WS] import gerenciador no POST:", hex(id(gerenciador)))
-    """Cria uma resposta para um formulário e publica o evento em tempo real."""
+@router.post("/{form_slug}", response_model=schemas.RespostaOut, status_code=status.HTTP_201_CREATED)
+async def criar_resposta(form_slug: str, payload: schemas.RespostaCreatePublico, request: Request, db: Session = Depends(get_db)):
+    """Cria uma resposta para um formulário (acessado por slug) e publica o evento em tempo real."""
+    form = crud.obter_formulario_publico_por_slug(db, slug=form_slug)
+    if not form:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado ou não está recebendo respostas.")
+
     if not payload.origem_ip:
         payload.origem_ip = request.client.host if request and request.client else None
-    resp = crud.criar(db, payload)
+    
+    full_payload = schemas.RespostaCreate(formulario_id=form.id, **payload.model_dump())
+    
+    resp = crud.criar(db, full_payload)
     sala_id = f"respostas:{resp.formulario_id}"
     out = jsonable_encoder(schemas.RespostaOut.model_validate(resp))
     await gerenciador.enviar_para_sala(sala_id, {"tipo": "resposta_criada", "dados": out})

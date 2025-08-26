@@ -18,6 +18,12 @@ class RespostaCreate(BaseModel):
     user_agent: Optional[str] = None
     meta: Optional[dict] = None
 
+class RespostaCreatePublico(BaseModel):
+    itens: List[RespostaItemCreate]
+    origem_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    meta: Optional[dict] = None
+
 class RespostaItemOut(BaseModel):
     id: UUID
     pergunta_id: UUID
