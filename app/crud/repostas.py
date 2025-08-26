@@ -1,5 +1,6 @@
 
 # app/crud/respostas.py
+from collections import defaultdict
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session, selectinload
@@ -47,11 +48,12 @@ def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaIt
 
     elif t == models.TipoPergunta.caixa_selecao:
         if not item.valor_opcao_id and not item.valor_opcao_texto:
-            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: caixa_selecao requer ao menos uma opção")
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: caixa_selecao requer opção")
         if item.valor_opcao_id:
             ids_validos = {o.id for o in pergunta.opcoes}
             if item.valor_opcao_id not in ids_validos:
                 raise HTTPException(status_code=422, detail=f"Opção não pertence à pergunta {pergunta.id}")
+
 
     else:
         raise HTTPException(status_code=422, detail=f"Tipo não suportado: {t}")
@@ -80,11 +82,15 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
 
     perguntas_map = {p.id: p for p in perguntas}
 
-    itens_in = {i.pergunta_id: i for i in payload.itens}
+    itens_por_pergunta = defaultdict(list)
+    for i in payload.itens:
+        itens_por_pergunta[i.pergunta_id].append(i)
+
     for p in perguntas:
-        item = itens_in.get(p.id)
-        _garantir_obrigatoria(p, item)
-        if item:
+        grupo = itens_por_pergunta.get(p.id, [])
+        _garantir_obrigatoria(p, grupo[0] if grupo else None)
+        
+        for item in grupo:
             _validar_item_por_tipo(p, item)
 
     resp = models.Resposta(
