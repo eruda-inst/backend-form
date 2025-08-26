@@ -38,9 +38,13 @@ def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaIt
             if item.valor_opcao_id not in ids_validos:
                 raise HTTPException(status_code=422, detail=f"Opção não pertence à pergunta {pergunta.id}")
 
-    elif t in {models.TipoPergunta.texto_simples, models.TipoPergunta.texto_longo, models.TipoPergunta.data}:
+    elif t in {models.TipoPergunta.texto_simples, models.TipoPergunta.texto_longo}:
         if not item.valor_texto or not item.valor_texto.strip():
             raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: texto requerido")
+
+    elif t == models.TipoPergunta.data:
+        if item.valor_data is None:
+          raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: data requerida")
 
     elif t == models.TipoPergunta.numero:
         if item.valor_numero is None:
@@ -114,6 +118,7 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
                 valor_numero=i.valor_numero,
                 valor_opcao_id=i.valor_opcao_id,
                 valor_opcao_texto=i.valor_opcao_texto,
+                valor_data=i.valor_data,
             )
         )
     db.add_all(itens_out)

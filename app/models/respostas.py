@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Text, Integer, JSON, DateTime, String, Index
+from sqlalchemy import Column, ForeignKey, Text, Integer, JSON, DateTime, String, Index, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
@@ -33,6 +33,8 @@ class RespostaItem(Base):
     valor_numero = Column(Integer, nullable=True)
     valor_opcao_id = Column(UUID(as_uuid=True), nullable=True)
     valor_opcao_texto = Column(Text, nullable=True)
+    valor_data = Column(Date, nullable=True)
+
 
     resposta = relationship("Resposta", back_populates="itens")
     pergunta = relationship("Pergunta", back_populates="itens_resposta")

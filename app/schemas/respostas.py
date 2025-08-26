@@ -1,6 +1,6 @@
 # app/schemas/resposta.py
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
@@ -10,6 +10,8 @@ class RespostaItemCreate(BaseModel):
     valor_numero: Optional[int] = None
     valor_opcao_id: Optional[UUID] = None
     valor_opcao_texto: Optional[str] = None
+    valor_data: Optional[date] = None
+
 
 class RespostaCreate(BaseModel):
     formulario_id: UUID
