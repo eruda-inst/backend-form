@@ -26,6 +26,8 @@ class RespostaCreatePublico(BaseModel):
     user_agent: Optional[str] = None
     meta: Optional[dict] = None
 
+from app.schemas.opcoes import OpcaoOut
+
 class RespostaItemOut(BaseModel):
     id: UUID
     pergunta_id: UUID
@@ -33,6 +35,8 @@ class RespostaItemOut(BaseModel):
     valor_numero: Optional[int] = None
     valor_opcao_id: Optional[UUID] = None
     valor_opcao_texto: Optional[str] = None
+    valor_opcao: Optional[OpcaoOut] = None
+
 
     model_config = ConfigDict(from_attributes=True)
 

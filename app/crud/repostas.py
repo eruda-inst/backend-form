@@ -124,12 +124,18 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
     db.add_all(itens_out)
     db.commit()
     db.refresh(resp)
-    return resp
+
+    created_resp = db.query(models.Resposta).options(
+        selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao)
+    ).filter(models.Resposta.id == resp.id).one()
+
+    return created_resp
 
 def listar_por_formulario(db: Session, formulario_id: UUID) -> List[models.Resposta]:
     """Lista respostas de um formulário."""
     return (
         db.query(models.Resposta)
+        .options(selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao))
         .filter(models.Resposta.formulario_id == formulario_id)
         .order_by(models.Resposta.criado_em.desc())
         .all()
@@ -137,7 +143,9 @@ def listar_por_formulario(db: Session, formulario_id: UUID) -> List[models.Respo
 
 def buscar_por_id(db: Session, resposta_id: UUID) -> models.Resposta | None:
     """Busca resposta pelo ID."""
-    return db.query(models.Resposta).filter(models.Resposta.id == resposta_id).first()
+    return db.query(models.Resposta).options(
+        selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao)
+    ).filter(models.Resposta.id == resposta_id).first()
 
 def deletar(db: Session, resposta_id: UUID) -> bool:
     """Remove uma resposta e seus itens."""
