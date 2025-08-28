@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:15
+    ports:
+      - "5499:5432"
     container_name: pesquisa_postgres
     restart: always
     environment:
