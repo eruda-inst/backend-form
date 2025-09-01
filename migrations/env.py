@@ -20,9 +20,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-url = os.getenv("DATABASE_URL").replace("+asyncpg", "+psycopg2")
+url = os.getenv("DB_URL").replace("+asyncpg", "+psycopg2") or os.getenv("DATABASE_URL").replace("+asyncpg", "+asyncpg")
 if not url:
-    raise RuntimeError("DATABASE_URL is not set")
+    raise RuntimeError("DB_URL or DATABASE_URL is not set")
 config.set_main_option("sqlalchemy.url", url)
 
 
