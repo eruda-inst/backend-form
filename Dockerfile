@@ -1,18 +1,17 @@
-FROM python:3.11
+FROM python:3.11-slim
 
 WORKDIR /app
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
 
-RUN apt-get update && apt-get install -y netcat-openbsd
+ENV PYTHONUNBUFFERED=1
 
-COPY wait-for.sh /wait-for.sh
-RUN chmod +x /wait-for.sh
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["/wait-for.sh", "db", "5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+RUN chmod +x /app/start.sh /app/wait-for.sh
 
+CMD ["/app/wait-for.sh","db","5432","--","/app/start.sh"]
