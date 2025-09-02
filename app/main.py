@@ -3,6 +3,9 @@ from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+import asyncio
+from app.database import engine
 from app.core.config import settings
 from contextlib import asynccontextmanager
 from app.database import criar_tabelas, SessionLocal
@@ -13,11 +16,25 @@ from .websockets import respostas as respostas_ws
 
 
 
+async def wait_for_db():
+    """Bloqueia até o banco aceitar conexões executando SELECT 1 com backoff exponencial."""
+    attempts, delay, max_delay = 20, 1, 5
+    for i in range(attempts):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return
+        except Exception:
+            if i == attempts - 1:
+                raise
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, max_delay)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    db = SessionLocal()
-    seed_grupo_admin_e_permissoes(db)
-    db.close()
+    await wait_for_db()
+    with SessionLocal() as db:
+        seed_grupo_admin_e_permissoes(db)
     yield
 
 
