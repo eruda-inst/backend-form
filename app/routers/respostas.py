@@ -20,8 +20,23 @@ async def criar_resposta(form_slug: str, payload: schemas.RespostaCreatePublico,
 
     if not payload.origem_ip:
         payload.origem_ip = request.client.host if request and request.client else None
+            
+    def _item_tem_valor(i: dict) -> bool:
+        return any(
+            i.get(k) is not None
+            for k in ("valor_texto", "valor_numero", "valor_opcao_id", "valor_opcao_texto", "valor_data")
+        )
+
+    itens_raw = [i.model_dump() for i in (payload.itens or [])]
+    itens_filtrados = [i for i in itens_raw if _item_tem_valor(i)]
     
-    full_payload = schemas.RespostaCreate(formulario_id=form.id, **payload.model_dump())
+    full_payload = schemas.RespostaCreate(
+        formulario_id=form.id,
+        itens=itens_filtrados,
+        origem_ip=payload.origem_ip,
+        user_agent=payload.user_agent,
+        meta=payload.meta,
+    )
     
     resp = crud.criar(db, full_payload)
     sala_id = f"respostas:{resp.formulario_id}"
