@@ -13,8 +13,6 @@ router = APIRouter(prefix="/respostas", tags=["Respostas"])
 
 @router.post("/{form_slug}", response_model=schemas.RespostaOut, status_code=status.HTTP_201_CREATED)
 async def criar_resposta(form_slug: str, payload: schemas.RespostaCreatePublico, request: Request, db: Session = Depends(get_db)):
-    print(payload.itens)
-
     """Cria uma resposta para um formulário (acessado por slug) e publica o evento em tempo real."""
     form = crud.obter_formulario_publico_por_slug(db, slug=form_slug)
     if not form:
