@@ -14,7 +14,7 @@ TIPO_TX_LONG = "texto_longo"
 
 def _one_value(i):
     presentes = [v is not None and (str(v).strip() != "") for v in
-                 [i.valor_texto, i.valor_numero, i.valor_opcao_id, i.valor_opcao_texto]]
+                 [i.valor_texto, i.valor_numero, i.valor_opcao_id, i.valor_opcao_texto, i.valor_data]]
     return sum(presentes) == 1
 
 def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaItemCreate) -> None:

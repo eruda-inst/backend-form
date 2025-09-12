@@ -18,7 +18,6 @@ services:
     working_dir: /app
     build: .
     container_name: pesquisa_api
-    command: ["/wait-for.sh","db","5432","--","/start.sh"]
     environment:
       - RUN_MIGRATIONS=0 
     ports:
