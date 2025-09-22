@@ -32,5 +32,12 @@ PERMISSOES_PADRAO = [
     #empresa
 
     {"codigo":"empresa:ver","nome":"Ver empresa"},
-    {"codigo":"empresa:editar","nome":"Editar empresa"}
+    {"codigo":"empresa:editar","nome":"Editar empresa"},
+
+    #integracoes
+
+    {"codigo":"integracoes:criar","nome":"Criar integração"},
+    {"codigo":"integracoes:ver","nome":"Ver integrações"},
+    {"codigo":"integracoes:editar","nome":"Editar integrações"},
+    {"codigo":"integracoes:apagar","nome":"Apagar integrações"}
 ]

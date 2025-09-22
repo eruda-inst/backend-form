@@ -9,7 +9,7 @@ from app.database import engine
 from app.core.config import settings
 from contextlib import asynccontextmanager
 from app.database import criar_tabelas, SessionLocal
-from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa
+from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa, integracao_ixc
 from app.utils.seed import seed_grupo_admin_e_permissoes
 from .websockets import forms as forms_ws
 from .websockets import respostas as respostas_ws
@@ -90,6 +90,7 @@ app.include_router(respostas.router)
 app.include_router(forms_ws.router)
 app.include_router(respostas_ws.router)
 app.include_router(empresa.router)
+app.include_router(integracao_ixc.router)
 
 
 
