@@ -8,6 +8,7 @@ from .perguntas import PerguntaCreate, PerguntaUpdatePayload, PerguntaOut
 class FormularioBase(BaseModel):
     titulo: str
     descricao: Optional[str] = None
+    unico_por_chave_modo: str = "none"
     recebendo_respostas: Optional[bool] = True
 
 
@@ -20,6 +21,7 @@ class FormularioOut(FormularioBase):
     perguntas: list[PerguntaOut] = []
     ativo: bool
     slug_publico: Optional[str] = None
+    unico_por_chave_modo: str
 
 
 

@@ -1,16 +1,74 @@
 
 # app/crud/respostas.py
+import re
 from collections import defaultdict
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app import models, schemas
+from app.core.identidade import normalizar_email, normalizar_telefone, normalizar_cpf
+
 
 TIPO_NPS = "nps"
 TIPO_ME = "multipla_escolha"
 TIPO_TX_SIM = "texto_simples"
 TIPO_TX_LONG = "texto_longo"
+
+IDENT_NORMALIZERS = {
+    "email": lambda v: (v or "").strip().lower() or None,
+    "telefone": lambda v: re.sub(r"\D+", "", v or "") or None,  # use a sua se já existir
+    "cpf": normalizar_cpf,
+}
+
+MODE_PRIORITY = {
+    "none": [],
+    "email": ["email"],
+    "phone": ["telefone"],
+    "cpf": ["cpf"],
+    "email_or_phone": ["email", "telefone"],
+    "email_or_cpf": ["email", "cpf"],
+    "phone_or_cpf": ["telefone", "cpf"],
+    "email_or_phone_or_cpf": ["email", "telefone", "cpf"],
+}
+
+def resolver_identificador_unico(modo: str, raw: dict) -> dict:
+    """
+    Retorna {'email':..., 'telefone':..., 'cpf':...} com apenas 1 preenchido conforme prioridade do modo.
+    """
+    modo = (modo or "none").lower()
+    priorities = MODE_PRIORITY.get(modo)
+    if priorities is None:
+        raise HTTPException(400, "Configuração inválida do formulário.")
+
+    normalized = {k: IDENT_NORMALIZERS[k](raw.get(k)) for k in IDENT_NORMALIZERS}
+
+    if modo == "none":
+        return {"email": None, "telefone": None, "cpf": None}
+
+    for key in priorities:
+        if normalized.get(key):
+            out = {"email": None, "telefone": None, "cpf": None}
+            out[key] = normalized[key]
+            return out
+
+    raise HTTPException(400, "Informe o identificador requerido pelo formulário.")
+
+def _extrair_identificadores_do_payload(perguntas_map, itens_por_pergunta):
+    email = telefone = cpf = None
+    for pid, grupo in itens_por_pergunta.items():
+        p = perguntas_map.get(pid)
+        if not p: 
+            continue
+        t = (getattr(p, "tipo", "") or "").lower()
+        for it in grupo:
+            v = getattr(it, "valor_texto", None)
+            if email is None and t == "email": email = v
+            if telefone is None and t == "telefone": telefone = v
+            if cpf is None and t == "cpf": cpf = v
+    return {"email": email, "telefone": telefone, "cpf": cpf}
+
 
 def _one_value(i):
     presentes = [v is not None and (str(v).strip() != "") for v in
@@ -57,8 +115,30 @@ def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaIt
             ids_validos = {o.id for o in pergunta.opcoes}
             if item.valor_opcao_id not in ids_validos:
                 raise HTTPException(status_code=422, detail=f"Opção não pertence à pergunta {pergunta.id}")
+            
+    elif t == models.TipoPergunta.telefone:
+        if not item.valor_texto:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: telefone é obrigatório")
+        v = item.valor_texto.strip()
+        # digits = re.sub(r"\D+", "", v)
+        if not normalizar_telefone(v):
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: telefone inválido")
+    
+    elif t == models.TipoPergunta.email:
+        if not item.valor_texto:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: e-mail é obrigatório")
+        v = item.valor_texto.strip().lower()
+        if not normalizar_email(v):
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: e-mail inválido")
+    
+    elif t == models.TipoPergunta.cpf:
+        if not item.valor_texto:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: CPF é obrigatório")
+        v = item.valor_texto.strip()
+        if not normalizar_cpf(v):
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: CPF inválido")
 
-
+        
     else:
         raise HTTPException(status_code=422, detail=f"Tipo não suportado: {t}")
 
@@ -70,7 +150,7 @@ def _garantir_obrigatoria(pergunta: "models.Pergunta", item: schemas.RespostaIte
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Pergunta obrigatória ausente: {pergunta.id}")
 
 def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
-    """Cria uma resposta completa de um formulário com validação por tipo de pergunta."""
+    """Cria uma resposta completa de um formulário com validação por tipo de pergunta e unicidade por e-mail/telefone."""
     form = db.query(models.Formulario).filter(models.Formulario.id == payload.formulario_id).first()
     if not form:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
@@ -78,14 +158,13 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
         raise HTTPException(status_code=403, detail="Formulário não está recebendo aceita respostas")
 
     perguntas = (
-    db.query(models.Pergunta)
-    .options(selectinload(models.Pergunta.opcoes))
-    .filter(models.Pergunta.formulario_id == form.id, models.Pergunta.ativa == True)
-    .all()
-)
+        db.query(models.Pergunta)
+        .options(selectinload(models.Pergunta.opcoes))
+        .filter(models.Pergunta.formulario_id == form.id, models.Pergunta.ativa == True)
+        .all()
+    )
 
     perguntas_map = {p.id: p for p in perguntas}
-
     itens_por_pergunta = defaultdict(list)
     for i in payload.itens:
         itens_por_pergunta[i.pergunta_id].append(i)
@@ -93,18 +172,29 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
     for p in perguntas:
         grupo = itens_por_pergunta.get(p.id, [])
         _garantir_obrigatoria(p, grupo[0] if grupo else None)
-        
         for item in grupo:
             _validar_item_por_tipo(p, item)
+
+    raw_ids = _extrair_identificadores_do_payload(perguntas_map, itens_por_pergunta)
+    ids = resolver_identificador_unico(getattr(form, "unico_por_chave_modo", "none"), raw_ids)
+
 
     resp = models.Resposta(
         formulario_id=form.id,
         origem_ip=payload.origem_ip,
         user_agent=payload.user_agent,
         meta=payload.meta,
+        email=ids["email"],
+        telefone=ids["telefone"],
+        cpf=ids["cpf"],
     )
     db.add(resp)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        ident = resp.email or resp.telefone or resp.cpf
+        raise HTTPException(status_code=409, detail= f"Este identificador já respondeu a este formulário: {ident}")
 
     itens_out: List[models.RespostaItem] = []
     for i in payload.itens:
@@ -122,13 +212,19 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
             )
         )
     db.add_all(itens_out)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Este identificador já respondeu a este formulário.")
+
     db.refresh(resp)
-
-    created_resp = db.query(models.Resposta).options(
-        selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao)
-    ).filter(models.Resposta.id == resp.id).one()
-
+    created_resp = (
+        db.query(models.Resposta)
+        .options(selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao))
+        .filter(models.Resposta.id == resp.id)
+        .one()
+    )
     return created_resp
 
 def listar_por_formulario(db: Session, formulario_id: UUID) -> List[models.Resposta]:
@@ -155,3 +251,4 @@ def deletar(db: Session, resposta_id: UUID) -> bool:
     db.delete(resp)
     db.commit()
     return True
+

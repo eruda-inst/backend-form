@@ -18,6 +18,7 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
         id=uuid4(),
         titulo=dados.titulo,
         descricao=dados.descricao,
+        unico_por_chave_modo=dados.unico_por_chave_modo,
         criado_por_id=usuario.id
     )
     db.add(formulario)

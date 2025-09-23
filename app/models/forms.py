@@ -19,6 +19,11 @@ class Formulario(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     slug_publico = Column(String(64), nullable=True, unique=True, index=True)
 
+    unico_por_chave_modo: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        server_default=text("'none'")
+    )
 
     permissoes = relationship(
         "FormularioPermissao",

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Text, Integer, JSON, DateTime, String, Index, Date
+from sqlalchemy import Column, ForeignKey, Text, Integer, JSON, DateTime, String, Index, Date, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
@@ -14,12 +14,33 @@ class Resposta(Base):
     origem_ip = Column(String(64), nullable=True)
     user_agent = Column(Text, nullable=True)
     meta = Column(JSON, nullable=True)
+    email = Column(String(320), nullable=True)
+    telefone = Column(String(32), nullable=True)
+    cpf = Column(String(14), nullable=True)
 
     itens = relationship("RespostaItem", back_populates="resposta", cascade="all, delete-orphan", passive_deletes=True)
 
     __table_args__ = (
         Index("ix_respostas_formulario_id", "formulario_id"),
         Index("ix_respostas_criado_em", "criado_em"),
+        Index(
+        "ux_respostas_form_email_partial",
+        "formulario_id", "email",
+        unique=True,
+        postgresql_where=text("email IS NOT NULL"),
+    ),
+        Index(
+        "ux_respostas_form_phone_partial",
+        "formulario_id", "telefone",
+        unique=True,
+        postgresql_where=text("telefone IS NOT NULL"),
+    ),
+        Index(
+        "ux_respostas_form_cpf_partial",
+        "formulario_id", "cpf",
+        unique=True,
+        postgresql_where=text("cpf IS NOT NULL"),
+    ),
     )
 
 class RespostaItem(Base):
