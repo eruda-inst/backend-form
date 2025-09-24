@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 from fastapi.responses import Response
 from app import models, schemas, crud, dependencies
-from app.database import get_db
+from app.db.database import get_db
 from uuid import UUID
 from app.models.permissao import Permissao
 from typing import List

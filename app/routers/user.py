@@ -1,12 +1,13 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, Request, File
 from fastapi.responses import RedirectResponse, FileResponse
+from app.db import database
 from app.utils.media import public_media_url, absolute_media_path, guess_mime_type
 from app.core.config import settings
 from app.utils.images import save_user_image, remove_media_file
 from app.crud.user import atualizar_imagem_usuario
 from sqlalchemy.orm import Session
-from app import schemas, crud, database, models
+from app import schemas, crud, models
 from app.models import Usuario as UsuarioModel
 from uuid import UUID
 from app.dependencies.auth import get_current_user, is_admin

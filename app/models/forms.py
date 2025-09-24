@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey, J
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from datetime import datetime, timezone
-from app.models.user import Base
+from app.db.base import Base
 
 class Formulario(Base):
     __tablename__ = "formularios"

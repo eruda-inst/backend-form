@@ -5,10 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 import asyncio
-from app.database import engine
+from app.db.database import engine, criar_tabelas, SessionLocal
 from app.core.config import settings
 from contextlib import asynccontextmanager
-from app.database import criar_tabelas, SessionLocal
 from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa, integracao_ixc
 from app.utils.seed import seed_grupo_admin_e_permissoes
 from .websockets import forms as forms_ws

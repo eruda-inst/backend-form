@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 from uuid import UUID
 from app import models, schemas
 from app.security import hash_senha

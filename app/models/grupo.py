@@ -2,7 +2,7 @@ from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
-from .user import Base
+from app.db.base import Base
 from app.models.permissao import grupo_permissoes
 
 class Grupo(Base):

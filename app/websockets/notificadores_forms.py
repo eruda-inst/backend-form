@@ -1,6 +1,6 @@
 # app/ws/notificadores_formularios.py
 from sqlalchemy.orm import joinedload
-from app.database import SessionLocal
+from app.db.database import SessionLocal
 from app import models, schemas
 from .conexoes import gerenciador
 

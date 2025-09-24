@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, Column, String, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-from .user import Base
+from app.db.base import Base
 from uuid import uuid4
 
 class Opcao(Base):

@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Table, ForeignKey, Boolean, UniqueConstra
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, declarative_base
 import uuid
-from .user import Base
+from app.db.base import Base
 
 grupo_permissoes = Table(
     "grupos_permissoes",

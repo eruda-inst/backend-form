@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 from dotenv import load_dotenv
 import os
-from app.models.user import Base
+from .base import Base
 
 load_dotenv()
 

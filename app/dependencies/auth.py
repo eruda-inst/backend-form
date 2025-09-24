@@ -1,10 +1,9 @@
 from fastapi import Request, Depends, HTTPException, WebSocket, WebSocketException
 from sqlalchemy.orm import Session, selectinload
-from app.database import get_db
+from app.db.database import get_db, SessionLocal
 from app.crud.user import buscar_usuario_por_id
 from typing import Optional, Union
 from jose import jwt, JWTError
-from app.database import SessionLocal
 from app.models.user import Usuario
 from uuid import UUID
 from app.models.grupo import Grupo

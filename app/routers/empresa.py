@@ -7,7 +7,7 @@ from app.crud.empresa import atualizar_logo_empresa, obter_unica_empresa
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
-from app.database import get_db
+from app.db.database import get_db
 from app.schemas.empresa import EmpresaUpdate, EmpresaResponse
 from app.crud import empresa as crud_empresa
 from app.dependencies import require_permission

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.db.database import get_db
 from app.schemas.user import UsuarioCreate
 from app.schemas.empresa import EmpresaCreate
 from app.crud.user import existe_admin, criar_usuario, get_usuario_admin, atualizar_imagem_usuario

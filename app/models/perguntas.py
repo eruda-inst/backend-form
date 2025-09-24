@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, CheckConstr
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from app.models.user import Base
+from app.db.base import Base
 
 class TipoPergunta(str, Enum):
     nps = "nps"

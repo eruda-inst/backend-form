@@ -2,7 +2,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import joinedload
 from app import crud, schemas, models
 from .conexoes import gerenciador
-from app.database import SessionLocal, get_db
+from app.db.database import SessionLocal, get_db
 from app.dependencies.auth import get_current_user_ws
 import anyio
 

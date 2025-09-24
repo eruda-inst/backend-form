@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from uuid import UUID
-from app.database import get_db
+from app.db.database import get_db
 from app import schemas, dependencies, crud
 from app.websockets.conexoes import gerenciador
 import anyio

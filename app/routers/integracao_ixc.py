@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.db.database import get_db
 from app.schemas.integracao_ixc import IntegracaoIXCCreate, IntegracaoIXCOut, IntegracaoIXCEdit, IntegracaoIXCStatusOut, IntegracaoIXCHabilitacao
 from app.crud.integracao_ixc import create_integracao_ixc, list_integracoes_ixc, get_integracao_ixc, edit_integracao_ixc, set_habilitacao_integracao_ixc
 from app.dependencies.permissoes import require_permission

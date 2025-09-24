@@ -1,11 +1,9 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
+from app.db.base import Base
 from datetime import datetime, timezone
 import uuid
-
-Base = declarative_base()
 
 class Usuario(Base):
     __tablename__ = "usuarios"

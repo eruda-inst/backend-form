@@ -1,14 +1,10 @@
 import os
 from dotenv import load_dotenv
-
 from logging.config import fileConfig
-
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from alembic import context
-
-from app.database import Base
+from app.db.base import Base
 from app import models
 
 

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, UniqueConstraint
-from app.database import Base
+from app.db.base import Base
 
 
 class IntegracaoIXC(Base):

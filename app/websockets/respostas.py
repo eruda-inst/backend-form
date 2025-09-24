@@ -2,7 +2,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from uuid import UUID
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
+from app.db.database import SessionLocal
 from .conexoes import gerenciador
 from app import schemas, crud
 from app.dependencies.auth import get_current_user_ws
