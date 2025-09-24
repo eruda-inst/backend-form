@@ -4,7 +4,7 @@ from typing import Sequence, Union
 
 
 revision = "20250922_add_email_tel_cpf_enum"
-down_revision: Union[str, Sequence[str], None] = 'd25feab1557d'
+down_revision: Union[str, Sequence[str], None] = '790fb0f81730'
 
 def upgrade():
     op.execute("ALTER TYPE tipo_pergunta ADD VALUE IF NOT EXISTS 'email'")
