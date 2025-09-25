@@ -227,8 +227,20 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
     )
     return created_resp
 
-def listar_por_formulario(db: Session, formulario_id: UUID) -> List[models.Resposta]:
-    """Lista respostas de um formulário."""
+def listar_por_formulario(db: Session, formulario_id: UUID, grupo_id: UUID) -> List[models.Resposta]:
+    """Lista respostas de um formulário somente se o grupo do usuário tiver permissão de ver o formulário."""
+    tem_perm = (
+        db.query(models.FormularioPermissao.id)
+        .filter(
+            models.FormularioPermissao.formulario_id == formulario_id,
+            models.FormularioPermissao.grupo_id == grupo_id,
+            models.FormularioPermissao.pode_ver.is_(True),
+        )
+        .first()
+    )
+    if not tem_perm:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para ver as respostas deste formulário")
+
     return (
         db.query(models.Resposta)
         .options(selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao))

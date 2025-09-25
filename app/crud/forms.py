@@ -59,10 +59,17 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
     return formulario
 
 
-def listar_formularios(db: Session, incluir_inativos: bool = False):
-    query = db.query(models.Formulario)
+def listar_formularios(db: Session, grupo_id: UUID, incluir_inativos: bool = False):
+    query = (
+        db.query(models.Formulario)
+        .join(models.FormularioPermissao, models.Formulario.id == models.FormularioPermissao.formulario_id)
+        .filter(
+            models.FormularioPermissao.grupo_id == grupo_id,
+            models.FormularioPermissao.pode_ver.is_(True),
+        )
+    )
     if not incluir_inativos:
-        query = query.filter(models.Formulario.ativo.is_(True))
+        query = query.filter(models.Formulario.ativo == True)
     return query.all()
 
 def obter_formulario_por_id(db: Session, formulario_id: str):

@@ -6,6 +6,7 @@ from uuid import UUID
 from app.db.database import get_db
 from app import schemas, dependencies, crud
 from app.websockets.conexoes import gerenciador
+from app import models
 import anyio
 
 
@@ -46,9 +47,9 @@ async def criar_resposta(form_slug: str, payload: schemas.RespostaCreatePublico,
 
 
 @router.get("/formulario/{formulario_id}", response_model=list[schemas.RespostaOut], dependencies=[dependencies.require_permission("respostas:ver")])
-def listar_respostas_formulario(formulario_id: UUID, db: Session = Depends(get_db)):
+def listar_respostas_formulario(formulario_id: UUID, db: Session = Depends(get_db), current_user: models.Usuario = Depends(dependencies.get_current_user)):
     """Lista respostas de um formulário."""
-    return crud.listar_por_formulario(db, formulario_id)
+    return crud.listar_por_formulario(db, formulario_id, current_user.grupo_id)
 
 @router.get("/{resposta_id}", response_model=schemas.RespostaOut, dependencies=[dependencies.require_permission("respostas:ver")])
 def obter_resposta(resposta_id: UUID, db: Session = Depends(get_db)):
