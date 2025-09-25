@@ -1,6 +1,9 @@
 from fastapi import Depends, HTTPException, status, WebSocket, WebSocketException
 from app.dependencies.auth import get_current_user_ws, get_current_user
 from app import models
+from sqlalchemy.orm import joinedload
+from app.db.database import SessionLocal
+
 
 def require_permission_callable_ws(codigo_permissao: str):
     """Retorna um callable que valida a permissão e devolve o usuário autenticado."""
@@ -32,11 +35,50 @@ def require_permission(codigo_permissao: str):
     """Retorna um objeto Depends para uso direto no decorator dependencies=[...]."""
     return Depends(require_permission_callable(codigo_permissao))
 
-def require_permission_ws(codigo: str):
-    async def dep(websocket: WebSocket) -> models.Usuario:
-        user = await get_current_user_ws(websocket)
-        codigos = {p.codigo for p in (user.grupo.permissoes or [])} if user and user.grupo else set()
-        if codigo not in codigos:
-            raise WebSocketException(code=1008, reason=f"Permissão '{codigo}' requerida")
-        return user
-    return dep
+async def deny_with_message(ws: WebSocket, code: int, msg: str):
+    try:
+        await ws.accept()
+    except RuntimeError:
+        pass
+    try:
+        await ws.send_json({"tipo": "erro", "codigo": code, "mensagem": msg})
+    except RuntimeError:
+        pass
+    try:
+        await ws.close(code=code, reason=msg[:120])
+    except RuntimeError:
+        pass
+    return None
+
+async def require_permission_ws(websocket: WebSocket, codigo_permissao: str):
+    """Valida a permissão global no WS e retorna o usuário autenticado (ou fecha com mensagem)."""
+    user = await get_current_user_ws(websocket)
+    if not user:
+        return await deny_with_message(websocket, 4401, "Não autenticado")
+
+    db = SessionLocal()
+    try:
+        user_db = (
+            db.query(models.Usuario)
+              .options(
+                  joinedload(models.Usuario.grupo)
+                  .joinedload(models.Grupo.permissoes)
+              )
+              .filter(models.Usuario.id == user.id)
+              .first()
+        )
+        if not user_db:
+            return await deny_with_message(websocket, 4401, "Usuário inválido")
+
+        codigos = set()
+        if getattr(user_db, "grupo", None):
+            codigos |= {p.codigo for p in (user_db.grupo.permissoes or [])}
+
+        if codigo_permissao not in codigos:
+            return await deny_with_message(
+                websocket, 4403, f"Permissão '{codigo_permissao}' é requerida"
+            )
+
+        return user_db
+    finally:
+        db.close()

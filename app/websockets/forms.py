@@ -4,6 +4,7 @@ from app import crud, schemas, models
 from .conexoes import gerenciador
 from app.db.database import SessionLocal, get_db
 from app.dependencies.auth import get_current_user_ws
+from app.dependencies.permissoes import require_permission_ws
 import anyio
 
 SALA_LISTA_FORMULARIOS = "formularios"
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/ws", tags=["Websocket - Formulários"])
 @router.websocket("/formularios/{formulario_id}")
 async def socket_formulario(websocket: WebSocket, formulario_id: str):
     """Gerencia colaboração em tempo real com estado inicial e updates restritos ao formulário do path."""
-    usuario = await get_current_user_ws(websocket)
+    usuario = await require_permission_ws(websocket, "formularios:editar")
     if usuario is None:
         await websocket.close(code=4401)
         return
@@ -80,7 +81,7 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
 @router.websocket("/formularios/")
 async def ws_formularios(websocket: WebSocket):
     """Entrega a lista geral de formulários em tempo real via snapshot e assinaturas."""
-    usuario = await get_current_user_ws(websocket)
+    usuario = await require_permission_ws(websocket, "formularios:ver")
     if usuario is None:
         await websocket.close(code=4401)
         return

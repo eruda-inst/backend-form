@@ -34,7 +34,7 @@ async def ws_respostas_formulario(websocket: WebSocket, formulario_id: str):
             await gerenciador.desconectar(sala_id, websocket)
             return
 
-        historico = crud.listar_por_formulario(db, form_uuid)[:50]
+        historico = crud.listar_por_formulario_ws(db, form_uuid)[:50]
         payload = [schemas.RespostaOut.model_validate(r).model_dump(mode="json") for r in historico]
         await gerenciador.enviar_para_usuario(websocket, {"tipo": "bootstrap_respostas", "dados": payload})
         await gerenciador.enviar_para_sala(

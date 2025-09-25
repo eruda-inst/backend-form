@@ -227,6 +227,18 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
     )
     return created_resp
 
+def listar_por_formulario_ws(db: Session, formulario_id: UUID) -> List[models.Resposta]:
+    """Lista respostas de um formulário."""
+    return (
+        db.query(models.Resposta)
+        .options(selectinload(models.Resposta.itens).selectinload(models.RespostaItem.valor_opcao))
+        .filter(models.Resposta.formulario_id == formulario_id)
+        .order_by(models.Resposta.criado_em.desc())
+        .all()
+    )
+
+
+
 def listar_por_formulario(db: Session, formulario_id: UUID, grupo_id: UUID) -> List[models.Resposta]:
     """Lista respostas de um formulário somente se o grupo do usuário tiver permissão de ver o formulário."""
     tem_perm = (
