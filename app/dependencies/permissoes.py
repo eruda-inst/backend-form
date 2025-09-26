@@ -82,3 +82,4 @@ async def require_permission_ws(websocket: WebSocket, codigo_permissao: str):
         return user_db
     finally:
         db.close()
+
