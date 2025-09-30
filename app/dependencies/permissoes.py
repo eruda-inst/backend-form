@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status, WebSocket, WebSocketException
 from app.dependencies.auth import get_current_user_ws, get_current_user
-from app import models
+from app import models, crud
+from uuid import UUID
 from sqlalchemy.orm import joinedload
 from app.db.database import SessionLocal
 
@@ -50,13 +51,23 @@ async def deny_with_message(ws: WebSocket, code: int, msg: str):
         pass
     return None
 
-async def require_permission_ws(websocket: WebSocket, codigo_permissao: str):
+async def require_permission_ws(websocket: WebSocket, codigo_permissao: str, formulario_id: str = UUID | None, permissao: str = None):
     """Valida a permissão global no WS e retorna o usuário autenticado (ou fecha com mensagem)."""
     user = await get_current_user_ws(websocket)
+    grupo_id = [user.grupo_id]
+    # formulario = crud.buscar_formulario_por_id(db, formulario_id)
+    db = SessionLocal()
+    tem_perm = (
+                db.query(models.FormularioPermissao) \
+                .filter(models.FormularioPermissao.formulario_id == formulario_id,
+                        models.FormularioPermissao.grupo_id.in_(grupo_id),
+                        getattr(models.FormularioPermissao, permissao).is_(True),
+                )
+                .first()
+    )
     if not user:
         return await deny_with_message(websocket, 4401, "Não autenticado")
 
-    db = SessionLocal()
     try:
         user_db = (
             db.query(models.Usuario)
@@ -77,6 +88,11 @@ async def require_permission_ws(websocket: WebSocket, codigo_permissao: str):
         if codigo_permissao not in codigos:
             return await deny_with_message(
                 websocket, 4403, f"Permissão '{codigo_permissao}' é requerida"
+            )
+        
+        if not tem_perm:
+            return await deny_with_message(
+                websocket, 4403, "Sem permissão para editar este formulário"
             )
 
         return user_db

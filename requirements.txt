@@ -7,7 +7,8 @@ sqlalchemy              # ORM para modelagem e comunicação com PostgreSQL
 psycopg2-binary         # Driver PostgreSQL para SQLAlchemy
 
 # --- Segurança ---
-passlib[bcrypt]         # Hash seguro de senhas usando bcrypt
+passlib>=1.7.4
+bcrypt==4.0.1         # Hash seguro de senhas usando bcrypt
 python-jose[cryptography]  # JWT com suporte a criptografia segura
 
 # --- Utilidades ---

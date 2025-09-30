@@ -6,6 +6,7 @@ from app.db.database import SessionLocal
 from .conexoes import gerenciador
 from app import schemas, crud
 from app.dependencies.auth import get_current_user_ws
+from app.dependencies.permissoes import require_permission_ws
 
 router = APIRouter(prefix="/ws/respostas", tags=["WebSocket Respostas"])
 
@@ -14,8 +15,8 @@ async def ws_respostas_formulario(websocket: WebSocket, formulario_id: str):
     print("[WS] import gerenciador no WS:", hex(id(gerenciador)))
     """Entrega respostas em tempo real de um formulário com bootstrap inicial e presença por sala dedicada."""
     usuario = await get_current_user_ws(websocket)
-    if usuario is None:
-        await websocket.close(code=4401)
+    usuario = await require_permission_ws(websocket, "formularios:ver", None, "pode_ver")
+    if not usuario:
         return
 
     sala_id = f"respostas:{formulario_id}"

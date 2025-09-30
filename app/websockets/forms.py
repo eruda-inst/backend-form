@@ -14,9 +14,8 @@ router = APIRouter(prefix="/ws", tags=["Websocket - Formulários"])
 @router.websocket("/formularios/{formulario_id}")
 async def socket_formulario(websocket: WebSocket, formulario_id: str):
     """Gerencia colaboração em tempo real com estado inicial e updates restritos ao formulário do path."""
-    usuario = await require_permission_ws(websocket, "formularios:editar")
-    if usuario is None:
-        await websocket.close(code=4401)
+    usuario = await require_permission_ws(websocket, "formularios:editar", formulario_id, "pode_editar")
+    if not usuario:
         return
 
     await gerenciador.conectar(
@@ -81,7 +80,8 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
 @router.websocket("/formularios/")
 async def ws_formularios(websocket: WebSocket):
     """Entrega a lista geral de formulários em tempo real via snapshot e assinaturas."""
-    usuario = await require_permission_ws(websocket, "formularios:ver")
+    usuario = await get_current_user_ws(websocket)
+    grupo_id = usuario.grupo_id
     if usuario is None:
         await websocket.close(code=4401)
         return
@@ -103,7 +103,19 @@ async def ws_formularios(websocket: WebSocket):
             def _carregar(incluir: bool):
                 db = SessionLocal()
                 try:
-                    q = db.query(models.Formulario).options(joinedload(models.Formulario.perguntas))
+                    q = (
+                        db.query(models.Formulario)
+                          .join(
+                              models.FormularioPermissao,
+                              models.Formulario.id == models.FormularioPermissao.formulario_id,
+                          )
+                          .filter(
+                              models.FormularioPermissao.grupo_id == grupo_id,
+                              models.FormularioPermissao.pode_ver.is_(True),
+                          )
+                          .options(joinedload(models.Formulario.perguntas))
+                          .distinct()
+                    )
                     if not incluir:
                         q = q.filter(models.Formulario.ativo.is_(True))
                     itens = q.all()
