@@ -76,7 +76,6 @@ async def socket_formulario(websocket: WebSocket, formulario_id: str):
     finally:
         db.close()
 
-
 @router.websocket("/formularios/")
 async def ws_formularios(websocket: WebSocket):
     """Entrega a lista geral de formulários em tempo real via snapshot e assinaturas."""
