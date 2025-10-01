@@ -57,7 +57,7 @@ def custom_openapi():
 
     openapi_schema = get_openapi(
         title="Sistema de Pesquisa e Formulários",
-        version="1.2.0",
+        version="1.2.1",
         description="API protegida por JWT",
         routes=app.routes,
     )

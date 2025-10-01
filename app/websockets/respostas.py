@@ -15,7 +15,7 @@ async def ws_respostas_formulario(websocket: WebSocket, formulario_id: str):
     print("[WS] import gerenciador no WS:", hex(id(gerenciador)))
     """Entrega respostas em tempo real de um formulário com bootstrap inicial e presença por sala dedicada."""
     usuario = await get_current_user_ws(websocket)
-    usuario = await require_permission_ws(websocket, "formularios:ver", None, "pode_ver")
+    # usuario = await require_permission_ws(websocket, "formularios:ver", None, "pode_ver")
     if not usuario:
         return
 
