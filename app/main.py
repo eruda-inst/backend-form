@@ -8,7 +8,7 @@ import asyncio
 from app.db.database import engine, criar_tabelas, SessionLocal
 from app.core.config import settings
 from contextlib import asynccontextmanager
-from app.routers import user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa, integracao_ixc
+from app.routers import integracoes, user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa
 from app.utils.seed import seed_grupo_admin_e_permissoes
 from .websockets import forms as forms_ws
 from .websockets import respostas as respostas_ws
@@ -57,7 +57,7 @@ def custom_openapi():
 
     openapi_schema = get_openapi(
         title="Sistema de Pesquisa e Formulários",
-        version="1.2.1",
+        version="1.3.0",
         description="API protegida por JWT",
         routes=app.routes,
     )
@@ -89,7 +89,7 @@ app.include_router(respostas.router)
 app.include_router(forms_ws.router)
 app.include_router(respostas_ws.router)
 app.include_router(empresa.router)
-app.include_router(integracao_ixc.router)
+app.include_router(integracoes.router)
 
 
 

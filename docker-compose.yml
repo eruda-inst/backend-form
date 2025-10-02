@@ -19,7 +19,7 @@ services:
     build: .
     container_name: pesquisa_api
     environment:
-      - RUN_MIGRATIONS=0 
+      - RUN_MIGRATIONS=0
     ports:
       - "8000:8000"
     volumes:

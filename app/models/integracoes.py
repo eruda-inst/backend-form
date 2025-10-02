@@ -1,20 +1,15 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, UniqueConstraint
 from app.db.base import Base
+from sqlalchemy.dialects.postgresql import JSONB
 
 
-class IntegracaoIXC(Base):
-    __tablename__ = "ixc_integracoes"
-    __table_args__ = (
-        UniqueConstraint("endereco", "nome_banco", name="uix_endereco_nome_banco"),
-    )
+class Integracao(Base):
+    __tablename__ = "integracoes"
 
     id = Column(Integer, primary_key=True, index=True)
-    endereco = Column(String(255), nullable=False)
-    porta = Column(Integer, nullable=False, default=3306)
-    usuario = Column(String(128), nullable=False)
-    senha = Column(String(128), nullable=False)
-    nome_banco = Column(String(128), nullable=False)
+    tipo = Column(String(50), nullable=False) 
+    config = Column(JSONB, nullable=False, default=dict) 
     habilitada = Column(Boolean, default=False, nullable=False)
     criado_em = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
@@ -25,7 +20,3 @@ class IntegracaoIXC(Base):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
-
-    @property
-    def endereco_completo(self) -> str:
-        return f"{self.endereco}:{self.porta}"
