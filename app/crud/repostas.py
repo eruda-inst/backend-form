@@ -1,4 +1,3 @@
-
 # app/crud/respostas.py
 import re
 from collections import defaultdict
@@ -8,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app import models, schemas
-from app.core.identidade import normalizar_email, normalizar_telefone, normalizar_cpf
+from app.core.identidade import normalizar_email, normalizar_telefone, normalizar_cnpj
 
 
 TIPO_NPS = "nps"
@@ -18,24 +17,24 @@ TIPO_TX_LONG = "texto_longo"
 
 IDENT_NORMALIZERS = {
     "email": lambda v: (v or "").strip().lower() or None,
-    "telefone": lambda v: re.sub(r"\D+", "", v or "") or None,  # use a sua se já existir
-    "cpf": normalizar_cpf,
+    "telefone": lambda v: re.sub(r"\D+", "", v or "") or None,
+    "cnpj": normalizar_cnpj,
 }
 
 MODE_PRIORITY = {
     "none": [],
     "email": ["email"],
     "phone": ["telefone"],
-    "cpf": ["cpf"],
+    "cnpj": ["cnpj"],
     "email_or_phone": ["email", "telefone"],
-    "email_or_cpf": ["email", "cpf"],
-    "phone_or_cpf": ["telefone", "cpf"],
-    "email_or_phone_or_cpf": ["email", "telefone", "cpf"],
+    "email_or_cnpj": ["email", "cnpj"],
+    "phone_or_cnpj": ["telefone", "cnpj"],
+    "email_or_phone_or_cnpj": ["email", "telefone", "cnpj"],
 }
 
 def resolver_identificador_unico(modo: str, raw: dict) -> dict:
     """
-    Retorna {'email':..., 'telefone':..., 'cpf':...} com apenas 1 preenchido conforme prioridade do modo.
+    Retorna {'email':..., 'telefone':..., 'cnpj':...} com apenas 1 preenchido conforme prioridade do modo.
     """
     modo = (modo or "none").lower()
     priorities = MODE_PRIORITY.get(modo)
@@ -45,18 +44,18 @@ def resolver_identificador_unico(modo: str, raw: dict) -> dict:
     normalized = {k: IDENT_NORMALIZERS[k](raw.get(k)) for k in IDENT_NORMALIZERS}
 
     if modo == "none":
-        return {"email": None, "telefone": None, "cpf": None}
+        return {"email": None, "telefone": None, "cnpj": None}
 
     for key in priorities:
         if normalized.get(key):
-            out = {"email": None, "telefone": None, "cpf": None}
+            out = {"email": None, "telefone": None, "cnpj": None}
             out[key] = normalized[key]
             return out
 
     raise HTTPException(400, "Informe o identificador requerido pelo formulário.")
 
 def _extrair_identificadores_do_payload(perguntas_map, itens_por_pergunta):
-    email = telefone = cpf = None
+    email = telefone = cnpj = None
     for pid, grupo in itens_por_pergunta.items():
         p = perguntas_map.get(pid)
         if not p: 
@@ -66,8 +65,8 @@ def _extrair_identificadores_do_payload(perguntas_map, itens_por_pergunta):
             v = getattr(it, "valor_texto", None)
             if email is None and t == "email": email = v
             if telefone is None and t == "telefone": telefone = v
-            if cpf is None and t == "cpf": cpf = v
-    return {"email": email, "telefone": telefone, "cpf": cpf}
+            if cnpj is None and t == "cnpj": cnpj = v
+    return {"email": email, "telefone": telefone, "cnpj": cnpj}
 
 
 def _one_value(i):
@@ -131,12 +130,12 @@ def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaIt
         if not normalizar_email(v):
             raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: e-mail inválido")
     
-    elif t == models.TipoPergunta.cpf:
+    elif t == models.TipoPergunta.cnpj:
         if not item.valor_texto:
-            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: CPF é obrigatório")
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: CNPJ é obrigatório")
         v = item.valor_texto.strip()
-        if not normalizar_cpf(v):
-            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: CPF inválido")
+        if not normalizar_cnpj(v):
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: CNPJ inválido")
 
         
     else:
@@ -186,14 +185,14 @@ def criar(db: Session, payload: schemas.RespostaCreate) -> models.Resposta:
         meta=payload.meta,
         email=ids["email"],
         telefone=ids["telefone"],
-        cpf=ids["cpf"],
+        cnpj=ids["cnpj"],
     )
     db.add(resp)
     try:
         db.flush()
     except IntegrityError:
         db.rollback()
-        ident = resp.email or resp.telefone or resp.cpf
+        ident = resp.email or resp.telefone or resp.cnpj
         raise HTTPException(status_code=409, detail= f"Este identificador já respondeu a este formulário: {ident}")
 
     itens_out: List[models.RespostaItem] = []
@@ -275,4 +274,3 @@ def deletar(db: Session, resposta_id: UUID) -> bool:
     db.delete(resp)
     db.commit()
     return True
-

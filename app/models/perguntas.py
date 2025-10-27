@@ -16,7 +16,7 @@ class TipoPergunta(str, Enum):
     caixa_selecao = "caixa_selecao"
     email = "email"
     telefone = "telefone"
-    cpf = "cpf"
+    cnpj = "cnpj"
 
 class Pergunta(Base):
     __tablename__ = "perguntas"
