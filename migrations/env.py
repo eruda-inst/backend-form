@@ -74,11 +74,20 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        def _include_object(obj, name, type_, reflected, compare_to):
+            # Evita que o Alembic proponha DROPs de objetos existentes no DB mas ausentes nos models.
+            if reflected and compare_to is None:
+                return False
+            return True
+
         context.configure(
             connection=connection, 
             target_metadata=target_metadata,
             compare_type=True,
             compare_server_default=True,
+            include_schemas=True,
+            version_table_schema="public",
+            include_object=_include_object,
         )
 
         with context.begin_transaction():
