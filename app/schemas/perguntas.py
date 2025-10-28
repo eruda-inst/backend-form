@@ -7,7 +7,7 @@ from .opcoes import OpcaoBase, OpcaoOut
 
 class PerguntaBase(BaseModel):
     texto: str
-    tipo: TipoPergunta  # "nps", "multipla_escolha", "texto_simples", "texto_longo"
+    tipo: str  # "nps", "multipla_escolha", "texto_simples", "texto_longo"
     obrigatoria: bool = True
     ordem_exibicao: Optional[int] = None
     escala_min: Optional[int] = None
@@ -17,6 +17,7 @@ class PerguntaBase(BaseModel):
 
 class PerguntaCreate(PerguntaBase):
     formulario_id: UUID
+    bloco_id: UUID
 
     @model_validator(mode="after")
     def validar_por_tipo(self):
@@ -32,8 +33,10 @@ class PerguntaCreate(PerguntaBase):
 
 class PerguntaOut(BaseModel):
     id: UUID
+    formulario_id: UUID
+    bloco_id: UUID
     texto: str
-    tipo: TipoPergunta
+    tipo: str
     obrigatoria: bool
     ativa: bool
     ordem_exibicao: int | None = None

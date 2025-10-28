@@ -29,6 +29,7 @@ class Pergunta(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     formulario_id = Column(UUID(as_uuid=True), ForeignKey("formularios.id"), nullable=False)
+    bloco_id = Column(UUID(as_uuid=True), ForeignKey("blocos.id", ondelete="RESTRICT"), nullable=False)
     texto = Column(String, nullable=False)
     tipo = Column(SAEnum(TipoPergunta, name="tipo_pergunta"), nullable=False)
     obrigatoria = Column(Boolean, default=True)
@@ -38,6 +39,7 @@ class Pergunta(Base):
     escala_max = Column(Integer, nullable=True)
 
     formulario = relationship("Formulario", back_populates="perguntas")
+    bloco = relationship("Bloco", back_populates="perguntas")
     opcoes = relationship(
         "Opcao",
         back_populates="pergunta",

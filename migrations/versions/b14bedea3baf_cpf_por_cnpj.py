@@ -20,6 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # garante que o ENUM tipo_pergunta possua o valor 'cnpj'
+    op.execute("ALTER TYPE tipo_pergunta ADD VALUE IF NOT EXISTS 'cnpj'")
+
     # renomeia a coluna cpf -> cnpj
     op.alter_column("respostas", "cpf", new_column_name="cnpj")
 

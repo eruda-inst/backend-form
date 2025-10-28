@@ -1,5 +1,6 @@
 import anyio
 from fastapi import Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload, with_loader_criteria
 from app import models, schemas, crud
 from uuid import uuid4, UUID
@@ -24,10 +25,25 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
     db.add(formulario)
     db.flush()
 
+    bloco_padrao = models.Bloco(
+        id=uuid4(),
+        form_id=formulario.id,
+        ordem=1,
+        titulo="Bloco Padrão",
+        descricao=None,
+    )
+    db.add(bloco_padrao)
+
     for ordem, pergunta_data in enumerate(dados.perguntas):
+        bloco = db.query(models.Bloco).filter(models.Bloco.id == pergunta_data.bloco_id).first()
+        if not bloco:
+            raise HTTPException(status_code=400, detail="Bloco informado não existe")
+        if bloco.form_id != formulario.id:
+            raise HTTPException(status_code=400, detail="O bloco informado não pertence a este formulário")
         pergunta = models.Pergunta(
             id=uuid4(),
             formulario_id=formulario.id,
+            bloco_id=pergunta_data.bloco_id,
             texto=pergunta_data.texto,
             tipo=pergunta_data.tipo,
             obrigatoria=pergunta_data.obrigatoria,
@@ -83,7 +99,9 @@ def buscar_formulario_por_id(db: Session, formulario_id: str):
     return (
         db.query(models.Formulario)
         .options(selectinload(models.Formulario.perguntas)
-                 .selectinload(models.Pergunta.opcoes))
+                 .selectinload(models.Pergunta.opcoes),
+                 selectinload(models.Formulario.blocos)
+        )
         .filter(models.Formulario.id == formulario_id, models.Pergunta.ativa==True)
         .first()
     )
@@ -113,7 +131,8 @@ def atualizar_formulario_parcial(db, payload: dict):
         db.query(models.Formulario)
         .options(
             selectinload(models.Formulario.perguntas)
-            .selectinload(models.Pergunta.opcoes)
+            .selectinload(models.Pergunta.opcoes),
+            selectinload(models.Formulario.blocos)
         )
         .filter(models.Formulario.id == formulario_id)
         .first()
@@ -125,14 +144,68 @@ def atualizar_formulario_parcial(db, payload: dict):
         formulario.titulo = payload["titulo"]
     if "descricao" in payload:
         formulario.descricao = payload["descricao"]
+    if "unico_por_chave_modo" in payload:
+        formulario.unico_por_chave_modo = payload["unico_por_chave_modo"]
     if "recebendo_respostas" in payload:
         formulario.recebendo_respostas = _to_bool(payload["recebendo_respostas"])
     if "ativo" in payload:
         formulario.ativo = _to_bool(payload["ativo"])
+    for b in payload.get("blocos_adicionados", []):
+        ordem = b.get("ordem")
+        if ordem is None:
+            max_ordem = db.query(func.coalesce(func.max(models.Bloco.ordem), 0)).filter(models.Bloco.form_id == formulario_id).scalar()
+            ordem = int(max_ordem) + 1
+        novo_bloco = models.Bloco(
+            id=uuid4(),
+            form_id=formulario_id,
+            ordem=ordem,
+            titulo=b.get("titulo") or "Novo bloco",
+            descricao=b.get("descricao"),
+        )
+        db.add(novo_bloco)
+    
+    for b in payload.get("blocos_editados", []):
+        bid = b.get("id")
+        if not bid:
+            continue
+        bloco = db.query(models.Bloco).filter(models.Bloco.id == bid, models.Bloco.form_id == formulario_id).first()
+        if not bloco:
+            raise HTTPException(status_code=400, detail="Bloco não encontrado para este formulário")
+        if "titulo" in b:
+            bloco.titulo = b["titulo"]
+        if "descricao" in b:
+            bloco.descricao = b["descricao"]
+        if "ordem" in b and b["ordem"] is not None:
+            bloco.ordem = int(b["ordem"])
+
+    for bloco_id in payload.get("blocos_removidos", []):
+        try:
+            bid = UUID(bloco_id)
+        except Exception:
+            continue
+        bloco = db.query(models.Bloco).filter(models.Bloco.id == bid, models.Bloco.form_id == formulario_id).first()
+        if not bloco:
+            continue
+        tem_perguntas = db.query(models.Pergunta.id)\
+            .filter(models.Pergunta.bloco_id == bid, models.Pergunta.ativa == True)\
+            .limit(1).first()
+        if tem_perguntas:
+            raise HTTPException(status_code=400, detail="Não é possível remover bloco com perguntas ativas")
+        db.delete(bloco)
 
     for p in payload.get("perguntas_adicionadas", []):
+        bloco_id = p.get("bloco_id")
+        if not bloco_id:
+            raise HTTPException(status_code=400, detail="bloco_id é obrigatório para adicionar perguntas")
+        bloco = db.query(models.Bloco).filter(models.Bloco.id == bloco_id).first()
+        if not bloco:
+            raise HTTPException(status_code=400, detail="Bloco informado não existe")
+        if str(bloco.form_id) != str(formulario_id):
+            raise HTTPException(status_code=400, detail="O bloco informado não pertence a este formulário")
+        
         nova = models.Pergunta(
             formulario_id=formulario_id,
+            bloco_id=bloco_id,
             texto=p.get("texto"),
             tipo=models.TipoPergunta(p.get("tipo")),
             obrigatoria=p.get("obrigatoria", True),
@@ -154,6 +227,14 @@ def atualizar_formulario_parcial(db, payload: dict):
         pergunta = db.query(models.Pergunta).filter(models.Pergunta.id == p["id"]).first()
         if not pergunta:
             continue
+        if "bloco_id" in p and p["bloco_id"] and str(p["bloco_id"]) != str(pergunta.bloco_id):
+            novo_bloco = db.query(models.Bloco).filter(models.Bloco.id == p["bloco_id"]).first()
+            if not novo_bloco:
+                raise HTTPException(status_code=400, detail="Bloco informado não existe")
+            if str(novo_bloco.form_id) != str(pergunta.formulario_id):
+                raise HTTPException(status_code=400, detail="O bloco informado não pertence a este formulário")
+            pergunta.bloco_id = p["bloco_id"]
+
         for campo in ["texto", "obrigatoria", "ordem_exibicao", "escala_min", "escala_max"]:
             if campo in p:
                 setattr(pergunta, campo, p[campo])
@@ -197,7 +278,8 @@ def atualizar_formulario_parcial(db, payload: dict):
         .options(
             with_loader_criteria(models.Pergunta, models.Pergunta.ativa == True),
             selectinload(models.Formulario.perguntas)
-            .selectinload(models.Pergunta.opcoes)
+            .selectinload(models.Pergunta.opcoes),
+            selectinload(models.Formulario.blocos)
         )
         .filter(models.Formulario.id == formulario_id)
         .first()
@@ -239,7 +321,9 @@ def obter_formulario_publico_por_slug(db: Session, slug: str) -> models.Formular
     return(
         db.query(models.Formulario)
         .options(selectinload(models.Formulario.perguntas)
-                 .selectinload(models.Pergunta.opcoes))
+                 .selectinload(models.Pergunta.opcoes),
+                 selectinload(models.Formulario.blocos)
+        )
         .filter(models.Formulario.slug_publico == slug, models.Pergunta.ativa==True)
         .first()
     )

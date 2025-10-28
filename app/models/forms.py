@@ -1,3 +1,4 @@
+from __future__ import annotations
 from uuid import uuid4
 from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey, JSON, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -39,6 +40,14 @@ class Formulario(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+
+    blocos = relationship(
+        "Bloco",
+        back_populates="form",
+        cascade="all,delete-orphan",
+    )
+
     versoes = relationship("FormularioVersao", back_populates="formulario", cascade="all, delete-orphan")
     edicoes = relationship("EdicaoFormulario", back_populates="formulario", cascade="all, delete-orphan")
 

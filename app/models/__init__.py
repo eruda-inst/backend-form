@@ -6,3 +6,4 @@ from .perguntas import Pergunta, TipoPergunta
 from .respostas import Resposta, RespostaItem
 from .opcao import Opcao
 from .empresa import Empresa
+from .bloco import Bloco

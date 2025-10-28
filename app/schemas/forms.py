@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Any
 from .perguntas import PerguntaCreate, PerguntaUpdatePayload, PerguntaOut
+from .blocos import BlocoOut
 
 
 class FormularioBase(BaseModel):
@@ -22,7 +23,7 @@ class FormularioOut(FormularioBase):
     ativo: bool
     slug_publico: Optional[str] = None
     unico_por_chave_modo: str
-
+    blocos: List[BlocoOut] = []
 
 
     model_config = {

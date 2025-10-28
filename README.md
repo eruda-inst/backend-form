@@ -9,6 +9,10 @@ Embora a estrutura atual seja simples, este projeto é o ponto inicial para o de
 
 A aplicação fornece um conjunto de endpoints para cadastro, consulta, atualização e exclusão de usuários. As senhas são armazenadas de forma segura utilizando hash (bcrypt).
 
+## Documentação da API
+
+Uma descrição completa de todos os endpoints, requisitos de autenticação, permissões e fluxos WebSocket está disponível em [docs/API.md](docs/API.md).
+
 ### Instalação
 
 ```bash

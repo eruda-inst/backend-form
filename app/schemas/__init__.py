@@ -6,3 +6,4 @@ from .forms import FormularioBase, FormularioCreate, FormularioOut, FormularioVe
 from .respostas import RespostaCreate, RespostaOut, RespostaItemCreate, RespostaItemOut, RespostaCreatePublico
 from .perguntas import PerguntaBase, PerguntaCreate, PerguntaOut, PerguntaUpdatePayload
 from .empresa import EmpresaCreate, EmpresaResponse
+from .blocos import BlocoOut
