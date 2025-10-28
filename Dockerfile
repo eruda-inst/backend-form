@@ -14,4 +14,8 @@ COPY . .
 
 RUN chmod +x /app/start.sh /app/wait-for.sh
 
+ARG APP_VERSION=dev
+ENV BACKEND_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.version=${APP_VERSION}
+
 CMD ["/app/wait-for.sh","db","5432","--","/app/start.sh"]

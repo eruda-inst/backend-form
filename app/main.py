@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +7,7 @@ from sqlalchemy import text
 import asyncio
 from app.db.database import engine, criar_tabelas, SessionLocal
 from app.core.config import settings
+from app.core.version import get_app_version
 from contextlib import asynccontextmanager
 from app.routers import integracoes, user, auth, setup, perfil, grupo, permissao, forms, respostas, empresa
 from app.utils.seed import seed_grupo_admin_e_permissoes
@@ -15,8 +16,10 @@ from .websockets import respostas as respostas_ws
 
 
 
+APP_VERSION = get_app_version()
+
 async def wait_for_db():
-    """Bloqueia até o banco aceitar conexões executando SELECT 1 com backoff exponencial."""
+    """Bloqueia até o banco aceitar conexões executando SELECT 1 com bsackoff exponencial."""
     attempts, delay, max_delay = 20, 1, 5
     for i in range(attempts):
         try:
@@ -38,6 +41,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan,title="Sistema de Pesquisa e Formulários")
+router_meta = APIRouter()
+
+@router_meta.get("/__version")
+def _verison():
+    """Retorna a versão atual da aplicação."""
+    return {"version": APP_VERSION}
+
+app.include_router(router_meta)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,7 +69,7 @@ def custom_openapi():
 
     openapi_schema = get_openapi(
         title="Sistema de Pesquisa e Formulários",
-        version="1.3.0",
+        version=APP_VERSION,
         description="API protegida por JWT",
         routes=app.routes,
     )

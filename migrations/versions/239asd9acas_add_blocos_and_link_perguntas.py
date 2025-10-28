@@ -59,7 +59,7 @@ def upgrade():
                 """
                 UPDATE perguntas
                 SET bloco_id = :bloco_id
-                WHERE form_id = :form_id AND (bloco_id IS NULL)
+                WHERE formulario_id = :form_id AND (bloco_id IS NULL)
                 """
             ),
             {"bloco_id": bloco_id, "form_id": str(form_id)},
