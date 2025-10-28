@@ -16,7 +16,7 @@ class Resposta(Base):
     meta = Column(JSON, nullable=True)
     email = Column(String(320), nullable=True)
     telefone = Column(String(32), nullable=True)
-    cpf = Column(String(14), nullable=True)
+    cnpj = Column(String(18), nullable=True)
 
     itens = relationship("RespostaItem", back_populates="resposta", cascade="all, delete-orphan", passive_deletes=True)
 
@@ -36,10 +36,10 @@ class Resposta(Base):
         postgresql_where=text("telefone IS NOT NULL"),
     ),
         Index(
-        "ux_respostas_form_cpf_partial",
-        "formulario_id", "cpf",
+        "ux_respostas_form_cnpj_partial",
+        "formulario_id", "cnpj",
         unique=True,
-        postgresql_where=text("cpf IS NOT NULL"),
+        postgresql_where=text("cnpj IS NOT NULL"),
     ),
     )
 

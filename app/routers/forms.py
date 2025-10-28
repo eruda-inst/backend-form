@@ -94,6 +94,7 @@ def obter_formulario_publico(slug: str, db: Session = Depends(get_db)):
         "titulo": formulario.titulo,
         "descricao": formulario.descricao,
         "unico_por_chave_modo": formulario.unico_por_chave_modo,
+        "blocos": formulario.blocos,
         "perguntas": formulario.perguntas,
         "ativo": formulario.ativo,
     }

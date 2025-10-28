@@ -6,6 +6,7 @@ class BlocoOut(BaseModel):
     id: UUID
     titulo: str
     descricao: Optional[str] = None
+    ordem: int
     form_id: UUID
 
     class Config:

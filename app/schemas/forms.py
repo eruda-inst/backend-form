@@ -37,6 +37,7 @@ class FormularioSlug(BaseModel):
 class FormularioPublicoResponse(BaseModel):
     titulo: str
     descricao: Optional[str] = None
+    blocos: List[BlocoOut]
     perguntas: List[PerguntaOut]
 
     model_config = {
