@@ -31,4 +31,6 @@ alembic>=1.13,<2
 psycopg2-binary>=2.9,<3
 python-dotenv>=1,<2
 pymysql
+pytz==2024.1
+openpyxl==3.1.5
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 from app import schemas, crud, models
@@ -6,6 +7,9 @@ from app.db.database import get_db
 from app.dependencies.auth import get_current_user
 from app.dependencies.permissoes import require_permission
 from app.utils.slugs import gerar_slug_publico
+from datetime import datetime
+from typing import Optional
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/formularios", tags=["Formulários"])
 
@@ -99,6 +103,31 @@ def obter_formulario_publico(slug: str, db: Session = Depends(get_db)):
         "ativo": formulario.ativo,
     }
 
+@router.get("/{formulario_id}/export", dependencies=[require_permission("formularios:ver")])
+def exportar_respostas_formulario(
+    formulario_id: UUID,
+    inicio: Optional[datetime] = Query(None),
+    fim: Optional[datetime] = Query(None),
+    formato: str = Query("csv"),
+    fuso: str = Query("America/Bahia"),
+    separador: str = Query(","),
+    apenas_ativas: bool = Query(False),
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_current_user),
+):
+    """Exporta as respostas de um formulário em CSV, NDJSON ou XLSX, delegando a geração ao módulo CRUD."""
+    if not crud.tem_permissao_formulario(db, usuario, formulario_id, "ver"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para ver este formulário")
+    return crud.forms.exportar_respostas(
+        db=db,
+        formulario_id=formulario_id,
+        inicio=inicio,
+        fim=fim,
+        formato=formato,
+        fuso=fuso,
+        separador=separador,
+        apenas_ativas=apenas_ativas,
+    )
 
 @router.post("/{formulario_id}/publicar", status_code=status.HTTP_200_OK, dependencies=[require_permission("formularios:editar")])
 def publicar_formulario(formulario_id: UUID, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_current_user)):

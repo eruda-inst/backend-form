@@ -7,3 +7,4 @@ from .respostas import RespostaCreate, RespostaOut, RespostaItemCreate, Resposta
 from .perguntas import PerguntaBase, PerguntaCreate, PerguntaOut, PerguntaUpdatePayload
 from .empresa import EmpresaCreate, EmpresaResponse
 from .blocos import BlocoOut
+from .exportacao import ExportQuery, ExportRow

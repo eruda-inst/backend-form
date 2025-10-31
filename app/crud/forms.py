@@ -6,6 +6,14 @@ from app import models, schemas, crud
 from uuid import uuid4, UUID
 from app.dependencies.auth import get_current_user
 from app.websockets.notificadores_forms import notificar_formulario_criado, notificar_formulario_apagado, notificar_formulario_atualizado
+from datetime import datetime
+from typing import Optional, Iterable, Dict, Any
+import io, csv, json
+import pytz
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
+from app.schemas.exportacao import ExportRow
+from app.utils.exportacao import resposta_para_export_row
 
 
 TIPOS_COM_OPCOES = {
@@ -327,3 +335,124 @@ def obter_formulario_publico_por_slug(db: Session, slug: str) -> models.Formular
         .filter(models.Formulario.slug_publico == slug, models.Pergunta.ativa==True)
         .first()
     )
+
+def _iter_export_rows(db: Session, formulario_id: UUID, inicio: Optional[datetime], fim: Optional[datetime]) -> Iterable[ExportRow]:
+    """Itera respostas do formulário aplicando filtros temporais e transforma em ExportRow."""
+    q = (
+        db.query(models.Resposta)
+        .filter(models.Resposta.formulario_id == formulario_id)
+        .order_by(models.Resposta.criado_em.asc())
+    )
+    if inicio:
+        q = q.filter(models.Resposta.criado_em >= inicio)
+    if fim:
+        q = q.filter(models.Resposta.criado_em < fim)
+    for resp in q.yield_per(500):
+        yield resposta_para_export_row(resp)
+
+def _csv_header_from_row(row: ExportRow) -> list[str]:
+    """Constrói cabeçalho padronizado para CSV/XLSX a partir de um ExportRow."""
+    cols = ["id", "criado_em"]
+    cols.extend(sorted(row.dados.keys()))
+    return cols
+
+async def _stream_csv(rows: Iterable[ExportRow], sep: str) -> Iterable[bytes]:
+    """Gera CSV em streaming a partir de ExportRow."""
+    it = iter(rows)
+    try:
+        first = next(it)
+    except StopIteration:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["id", "criado_em"])
+        yield buffer.getvalue().encode("utf-8")
+        return
+
+    header = _csv_header_from_row(first)
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(header)
+    writer.writerow([first.id, first.criado_em.isoformat(), *[first.dados.get(k, "") for k in header[2:]]])
+    yield buffer.getvalue().encode("utf-8")
+    buffer.seek(0)
+    buffer.truncate(0)
+
+    for row in it:
+        writer.writerow([row.id, row.criado_em.isoformat(), *[row.dados.get(k, "") for k in header[2:]]])
+        yield buffer.getvalue().encode("utf-8")
+        buffer.seek(0)
+        buffer.truncate(0)
+
+async def _stream_ndjson(rows: Iterable[ExportRow]) -> Iterable[bytes]:
+    """Gera NDJSON em streaming a partir de ExportRow."""
+    for row in rows:
+        payload = {"id": row.id, "criado_em": row.criado_em.isoformat(), **row.dados}
+        yield (json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8")
+
+def _gerar_xlsx(rows: Iterable[ExportRow]) -> io.BytesIO:
+    """Gera planilha XLSX em memória com base em ExportRow."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Respostas"
+
+    rows_list = list(rows)
+    if not rows_list:
+        ws.append(["id", "criado_em"])
+    else:
+        header = _csv_header_from_row(rows_list[0])
+        ws.append(header)
+        for r in rows_list:
+            ws.append([r.id, r.criado_em.isoformat(), *[r.dados.get(k, "") for k in header[2:]]])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+def exportar_respostas(
+    db: Session,
+    formulario_id: UUID,
+    inicio: Optional[datetime],
+    fim: Optional[datetime],
+    formato: str,
+    fuso: str,
+    separador: str,
+):
+    """Exporta respostas de um formulário nos formatos CSV, NDJSON ou XLSX."""
+    try:
+        tz = pytz.timezone(fuso)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Fuso horário inválido")
+
+    if inicio and inicio.tzinfo is None:
+        inicio = tz.localize(inicio)
+    if fim and fim.tzinfo is None:
+        fim = tz.localize(fim)
+
+    existe = (
+        db.query(models.Resposta.id)
+        .filter(models.Resposta.formulario_id == formulario_id)
+        .limit(1)
+        .first()
+    )
+    if not existe:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado ou sem respostas")
+
+    rows = _iter_export_rows(db, formulario_id, inicio, fim)
+
+    if formato == "csv":
+        filename = f"form_{formulario_id}_respostas.csv"
+        generator = _stream_csv(rows, separador)
+        return StreamingResponse(generator, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+    if formato == "ndjson":
+        filename = f"form_{formulario_id}_respostas.ndjson"
+        generator = _stream_ndjson(rows)
+        return StreamingResponse(generator, media_type="application/x-ndjson", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+    if formato == "xlsx":
+        filename = f"form_{formulario_id}_respostas.xlsx"
+        buf = _gerar_xlsx(rows)
+        return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Formato inválido; use csv, ndjson ou xlsx")
