@@ -7,7 +7,7 @@ from uuid import uuid4, UUID
 from app.dependencies.auth import get_current_user
 from app.websockets.notificadores_forms import notificar_formulario_criado, notificar_formulario_apagado, notificar_formulario_atualizado
 from datetime import datetime
-from typing import Optional, Iterable, Dict, Any
+from typing import Optional, Iterable, Dict, Any, Set
 import io, csv, json
 import pytz
 from fastapi.responses import StreamingResponse
@@ -336,8 +336,14 @@ def obter_formulario_publico_por_slug(db: Session, slug: str) -> models.Formular
         .first()
     )
 
-def _iter_export_rows(db: Session, formulario_id: UUID, inicio: Optional[datetime], fim: Optional[datetime]) -> Iterable[ExportRow]:
-    """Itera respostas do formulário aplicando filtros temporais e transforma em ExportRow."""
+def _iter_export_rows(
+    db: Session,
+    formulario_id: UUID,
+    inicio: Optional[datetime],
+    fim: Optional[datetime],
+    perguntas_ids_permitidas: Optional[Set[str]] = None,
+) -> Iterable[ExportRow]:
+    """Itera respostas do formulário aplicando filtros temporais e (opcionalmente) filtra colunas por IDs de perguntas permitidas."""
     q = (
         db.query(models.Resposta)
         .filter(models.Resposta.formulario_id == formulario_id)
@@ -348,7 +354,10 @@ def _iter_export_rows(db: Session, formulario_id: UUID, inicio: Optional[datetim
     if fim:
         q = q.filter(models.Resposta.criado_em < fim)
     for resp in q.yield_per(500):
-        yield resposta_para_export_row(resp)
+        row = resposta_para_export_row(resp)
+        if perguntas_ids_permitidas is not None:
+            row.dados = {k: v for k, v in row.dados.items() if k in perguntas_ids_permitidas}
+        yield row
 
 def _csv_header_from_row(row: ExportRow) -> list[str]:
     """Constrói cabeçalho padronizado para CSV/XLSX a partir de um ExportRow."""
@@ -409,6 +418,8 @@ def _gerar_xlsx(rows: Iterable[ExportRow]) -> io.BytesIO:
     buf.seek(0)
     return buf
 
+# app/crud/forms.py
+
 def exportar_respostas(
     db: Session,
     formulario_id: UUID,
@@ -417,6 +428,7 @@ def exportar_respostas(
     formato: str,
     fuso: str,
     separador: str,
+    apenas_ativas: bool = False,
 ):
     """Exporta respostas de um formulário nos formatos CSV, NDJSON ou XLSX."""
     try:
@@ -438,21 +450,34 @@ def exportar_respostas(
     if not existe:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado ou sem respostas")
 
-    rows = _iter_export_rows(db, formulario_id, inicio, fim)
+    perguntas_ativas_ids: Optional[Set[str]] = None
+    if apenas_ativas:
+        perguntas_ativas_ids = {
+            str(pid)
+            for (pid,) in db.query(models.Pergunta.id)
+            .filter(models.Pergunta.formulario_id == formulario_id, models.Pergunta.ativa.is_(True))
+            .all()
+        }
 
+    rows = _iter_export_rows(db, formulario_id, inicio, fim, perguntas_ids_permitidas=perguntas_ativas_ids)
+
+    formato = (formato or "").lower()  # robustez
     if formato == "csv":
         filename = f"form_{formulario_id}_respostas.csv"
         generator = _stream_csv(rows, separador)
-        return StreamingResponse(generator, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        return StreamingResponse(generator, media_type="text/csv",
+                                 headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
     if formato == "ndjson":
         filename = f"form_{formulario_id}_respostas.ndjson"
         generator = _stream_ndjson(rows)
-        return StreamingResponse(generator, media_type="application/x-ndjson", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        return StreamingResponse(generator, media_type="application/x-ndjson",
+                                 headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
     if formato == "xlsx":
         filename = f"form_{formulario_id}_respostas.xlsx"
         buf = _gerar_xlsx(rows)
-        return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                 headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Formato inválido; use csv, ndjson ou xlsx")
