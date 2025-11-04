@@ -31,6 +31,7 @@ class Pergunta(Base):
     formulario_id = Column(UUID(as_uuid=True), ForeignKey("formularios.id"), nullable=False)
     bloco_id = Column(UUID(as_uuid=True), ForeignKey("blocos.id", ondelete="RESTRICT"), nullable=False)
     texto = Column(String, nullable=False)
+    descricao = Column(String, nullable=True)
     tipo = Column(SAEnum(TipoPergunta, name="tipo_pergunta"), nullable=False)
     obrigatoria = Column(Boolean, default=True)
     ordem_exibicao = Column(Integer, nullable=True)

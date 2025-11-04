@@ -70,6 +70,7 @@ Toda mensagem enviada via WebSocket segue este padrão:
       {
         "bloco_id": "fd460b53-a4af-4b8d-acc8-a8ada3877981",
         "texto": "Qual é o seu nome?",
+        "descricao": "Observação opcional sobre a pergunta",
         "tipo": "texto_simples",
         "obrigatoria": true,
         "ordem_exibicao":1
@@ -90,6 +91,7 @@ Toda mensagem enviada via WebSocket segue este padrão:
       {
         "id": "39c15b3e-927d-4cc7-bb7a-24a02cc26a91",
         "texto": "Qual é o seu primeiro nome?",
+        "descricao": "Atualização da observação da pergunta",
         "obrigatoria": false,
         "bloco_id": "fd460b53-a4af-4b8d-acc8-a8ada3877981"
       }

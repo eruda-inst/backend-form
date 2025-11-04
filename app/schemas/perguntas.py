@@ -7,6 +7,7 @@ from .opcoes import OpcaoBase, OpcaoOut
 
 class PerguntaBase(BaseModel):
     texto: str
+    descricao: Optional[str] = None
     tipo: str  # "nps", "multipla_escolha", "texto_simples", "texto_longo"
     obrigatoria: bool = True
     ordem_exibicao: Optional[int] = None
@@ -36,6 +37,7 @@ class PerguntaOut(BaseModel):
     formulario_id: UUID
     bloco_id: UUID
     texto: str
+    descricao: Optional[str] = None
     tipo: str
     obrigatoria: bool
     ativa: bool
@@ -51,6 +53,7 @@ class PerguntaOut(BaseModel):
 class PerguntaUpdatePayload(BaseModel):
     id: Optional[UUID] = None
     texto: Optional[str] = None
+    descricao: Optional[str] = None
     tipo: Optional[str] = None
     obrigatoria: Optional[bool] = None
     ordem_exibicao: Optional[int] = None

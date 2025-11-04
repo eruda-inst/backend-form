@@ -62,6 +62,33 @@ def deletar_formulario_route(
     if not ok:
         raise HTTPException(status_code=404, detail="Formulário não encontrado")
 
+@router.delete("/{formulario_id}/respostas", status_code=status.HTTP_204_NO_CONTENT, dependencies=[require_permission("formularios:apagar")])
+def apagar_respostas_formulario(
+    formulario_id: UUID,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_current_user),
+):
+    """Apaga todas as respostas (e seus itens) de um formulário, verificando permissão de apagar no ACL."""
+    if not crud.tem_permissao_formulario(db, usuario, formulario_id, "apagar"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para apagar respostas deste formulário")
+
+    existe_form = db.query(models.Formulario.id).filter(models.Formulario.id == formulario_id, models.Formulario.ativo.is_(True)).first()
+    if not existe_form:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formulário não encontrado ou inativo")
+
+    respostas = (
+        db.query(models.Resposta)
+        .filter(models.Resposta.formulario_id == formulario_id)
+        .all()
+    )
+
+    if not respostas:
+        return
+
+    for r in respostas:
+        db.delete(r)
+
+    db.commit()
 
 @router.get("/{formulario_id}/slug", response_model=schemas.FormularioSlug, dependencies=[require_permission("formularios:ver")])
 def obter_slug_formulario(formulario_id: UUID, db: Session = Depends(get_db)):

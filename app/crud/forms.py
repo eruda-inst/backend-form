@@ -53,6 +53,7 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
             formulario_id=formulario.id,
             bloco_id=pergunta_data.bloco_id,
             texto=pergunta_data.texto,
+            descricao=getattr(pergunta_data, "descricao", None),
             tipo=pergunta_data.tipo,
             obrigatoria=pergunta_data.obrigatoria,
             ordem_exibicao=pergunta_data.ordem_exibicao or ordem,
@@ -215,6 +216,7 @@ def atualizar_formulario_parcial(db, payload: dict):
             formulario_id=formulario_id,
             bloco_id=bloco_id,
             texto=p.get("texto"),
+            descricao=p.get("descricao"),
             tipo=models.TipoPergunta(p.get("tipo")),
             obrigatoria=p.get("obrigatoria", True),
             ordem_exibicao=p.get("ordem_exibicao"),
@@ -243,7 +245,7 @@ def atualizar_formulario_parcial(db, payload: dict):
                 raise HTTPException(status_code=400, detail="O bloco informado não pertence a este formulário")
             pergunta.bloco_id = p["bloco_id"]
 
-        for campo in ["texto", "obrigatoria", "ordem_exibicao", "escala_min", "escala_max"]:
+        for campo in ["texto", "descricao", "obrigatoria", "ordem_exibicao", "escala_min", "escala_max"]:
             if campo in p:
                 setattr(pergunta, campo, p[campo])
         if "tipo" in p:
