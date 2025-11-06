@@ -19,6 +19,7 @@ from app.utils.exportacao import resposta_para_export_row
 TIPOS_COM_OPCOES = {
     models.TipoPergunta.multipla_escolha,
     models.TipoPergunta.caixa_selecao,
+    models.TipoPergunta.multipla_escolha_personalizada,
 }
 
 def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: models.Usuario = Depends(get_current_user)):
@@ -62,13 +63,18 @@ def criar_formulario(db: Session, dados: schemas.FormularioCreate, usuario: mode
         )
         db.add(pergunta)
 
-        if pergunta_data.tipo == "multipla_escolha":
+        if str(pergunta_data.tipo) in {
+            models.TipoPergunta.multipla_escolha.value,
+            models.TipoPergunta.caixa_selecao.value,
+            models.TipoPergunta.multipla_escolha_personalizada.value,
+        }:
             for idx, opcao in enumerate(pergunta_data.opcoes or []):
                 db.add(models.Opcao(
                     id=uuid4(),
                     pergunta_id=pergunta.id,
                     texto=opcao.texto,
-                    ordem=opcao.ordem or idx
+                    ordem=(opcao.ordem if getattr(opcao, "ordem", None) is not None else idx),
+                    personalizavel=getattr(opcao, "personalizavel", False),
                 ))
 
     if getattr(usuario, "grupo_id", None):
@@ -223,14 +229,15 @@ def atualizar_formulario_parcial(db, payload: dict):
             escala_min=p.get("escala_min"),
             escala_max=p.get("escala_max"),
         )
-        if nova.tipo == models.TipoPergunta.multipla_escolha and p.get("opcoes"):
+        if (nova.tipo in TIPOS_COM_OPCOES) and p.get("opcoes"):
             nova.opcoes = [
                 models.Opcao(
                     texto=o["texto"],
-                    ordem=(o.get("ordem") if o.get("ordem") is not None else i + 1)
+                    ordem=(o.get("ordem") if o.get("ordem") is not None else i + 1),
+                    personalizavel=bool(o.get("personalizavel", False)),
                 )
                 for i, o in enumerate(p["opcoes"])
-    ]
+            ]
         db.add(nova)
 
     for p in payload.get("perguntas_editadas", []):
@@ -256,7 +263,8 @@ def atualizar_formulario_parcial(db, payload: dict):
                 pergunta.opcoes.append(
                     models.Opcao(
                         texto=o["texto"],
-                        ordem=(o.get("ordem") if o.get("ordem") is not None else i + 1)
+                        ordem=(o.get("ordem") if o.get("ordem") is not None else i + 1),
+                        personalizavel=bool(o.get("personalizavel", False)),
                     )
                 )
 

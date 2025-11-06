@@ -6,6 +6,7 @@ from typing import Optional
 class OpcaoBase(BaseModel):
     texto: str
     ordem: Optional[int] = None
+    personalizavel: bool = False
 
 class OpcaoCreate(OpcaoBase):
     pergunta_id: UUID

@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Column, String, Integer
+from sqlalchemy import ForeignKey, Column, String, Integer, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
@@ -14,6 +14,7 @@ class Opcao(Base):
         nullable=False,
     )
     texto = Column(String, nullable=False)
+    personalizavel = Column(Boolean, nullable=False, default=False)
     ordem = Column(Integer, nullable=False)
 
     pergunta = relationship("Pergunta", back_populates="opcoes")

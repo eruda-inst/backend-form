@@ -70,9 +70,17 @@ def _extrair_identificadores_do_payload(perguntas_map, itens_por_pergunta):
 
 
 def _one_value(i):
-    presentes = [v is not None and (str(v).strip() != "") for v in
-                 [i.valor_texto, i.valor_numero, i.valor_opcao_id, i.valor_opcao_texto, i.valor_data]]
-    return sum(presentes) == 1
+    """Conta quantos 'valores' foram enviados no item, tratando (valor_opcao_id + valor_opcao_texto) como um único valor lógico."""
+    has_text = bool(getattr(i, "valor_texto", None) and str(i.valor_texto).strip())
+    has_num = getattr(i, "valor_numero", None) is not None
+    has_date = bool(getattr(i, "valor_data", None))
+
+    has_opt_id = bool(getattr(i, "valor_opcao_id", None))
+    has_opt_txt = bool(getattr(i, "valor_opcao_texto", None) and str(i.valor_opcao_texto).strip())
+    opt_pair = 1 if (has_opt_id or has_opt_txt) else 0
+
+    count = (1 if has_text else 0) + (1 if has_num else 0) + (1 if has_date else 0) + opt_pair
+    return count == 1
 
 def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaItemCreate) -> None:
     if not _one_value(item):
@@ -90,6 +98,14 @@ def _validar_item_por_tipo(pergunta: "models.Pergunta", item: schemas.RespostaIt
     elif t == models.TipoPergunta.multipla_escolha:
         if not item.valor_opcao_id and not item.valor_opcao_texto:
             raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: múltipla escolha requer opção")
+        if item.valor_opcao_id:
+            ids_validos = {o.id for o in pergunta.opcoes}
+            if item.valor_opcao_id not in ids_validos:
+                raise HTTPException(status_code=422, detail=f"Opção não pertence à pergunta {pergunta.id}")
+            
+    elif t == models.TipoPergunta.multipla_escolha_personalizada:
+        if not item.valor_opcao_id and not item.valor_opcao_texto:
+            raise HTTPException(status_code=422, detail=f"Pergunta {pergunta.id}: múltipla escolha personalizada requer opção ou texto personalizado")
         if item.valor_opcao_id:
             ids_validos = {o.id for o in pergunta.opcoes}
             if item.valor_opcao_id not in ids_validos:

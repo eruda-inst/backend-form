@@ -17,6 +17,7 @@ class TipoPergunta(str, Enum):
     email = "email"
     telefone = "telefone"
     cnpj = "cnpj"
+    multipla_escolha_personalizada = "multipla_escolha_personalizada"
 
 class Pergunta(Base):
     __tablename__ = "perguntas"
